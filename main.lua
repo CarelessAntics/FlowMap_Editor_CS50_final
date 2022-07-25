@@ -1,4 +1,5 @@
 require "./custom_vector"
+require "./helpers"
 require "./walker"
 require "./brush"
 require "./button"
@@ -25,11 +26,11 @@ BRUSH_LAZY_RADIUS = 100
 -- Canvas params
 WIDTH = 1024
 HEIGHT = 1024
-PADDING = 300
+PADDING = vec(500, 200)
 PADDING_HALF = PADDING / 2
-lw.setMode(WIDTH + PADDING, HEIGHT + PADDING, {resizable = false})
+lw.setMode(WIDTH + PADDING.x, HEIGHT + PADDING.y, {resizable = false})
 CANVAS_IMAGE = lg.newCanvas(WIDTH, HEIGHT)
-CANVAS_UI = lg.newCanvas(WIDTH + PADDING, HEIGHT + PADDING)
+CANVAS_UI = lg.newCanvas(WIDTH + PADDING.x, HEIGHT + PADDING.y)
 
 -- Export params
 -- Save location in %appdata%/Roaming/LOVE/
@@ -102,16 +103,17 @@ function love.draw()
     end
 
     lg.setColor(1, 1, 1)
-    lg.draw(CANVAS_IMAGE, PADDING_HALF, PADDING_HALF)
+    lg.draw(CANVAS_IMAGE, PADDING_HALF.x, PADDING_HALF.y)
     lg.draw(CANVAS_UI)
 
 
     vec1 = vec(1, .5)
     vec2 = vec(.5, 2)
+    mouseCanvas = toCanvasSpace(mousePos)
     lg.print(lf.getIdentity(), WIDTH/2, HEIGHT/2)
     lg.print(mousePos.x .. ", " .. mousePos.y, WIDTH/2, HEIGHT/2 + 15)
     lg.print(type(vec(0,0)) .. ", " .. type(4), WIDTH/2, HEIGHT/2 + 30)
-    lg.print((vec1 * vec2).x .. ", " .. (vec1 * vec2).y, WIDTH/2, HEIGHT/2 + 45)
+    lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, WIDTH/2, HEIGHT/2 + 45)
     lg.print((vec1 / vec2).x .. ", " .. (vec1 / vec2).y, WIDTH/2, HEIGHT/2 + 60)
     lg.print((vec1 * 2).x .. ", " .. (vec1 * 2).y, WIDTH/2, HEIGHT/2 + 75)
     lg.print((vec1 / 2).x .. ", " .. (vec1 / 2).y, WIDTH/2, HEIGHT/2 + 90)

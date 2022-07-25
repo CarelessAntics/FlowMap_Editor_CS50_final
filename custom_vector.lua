@@ -59,14 +59,43 @@ function normalize(vector)
     end
 end
 
+-- Returns a wrapped around vector
+function wrapped(inVec, in_width, in_height, in_size)
+    
+    -- Initialize output components
+    local outX = inVec.x
+    local outY = inVec.y
+
+    -- Check if a vector is out of bounds, include possible size for brushes etc
+    if inVec.x > in_width - in_size then
+        outX = inVec.x - in_width
+    elseif inVec.x < in_size then
+        outX = inVec.x + in_width
+    end
+
+    if inVec.y > in_height - in_size then
+        outY = inVec.y - in_height
+    elseif inVec.y < in_size then
+        outY = inVec.y + in_height
+    end
+
+    -- if new vector is identical to input, no wraparound has happened. Return a garbage vector so that there's no double draw
+    if inVec == vec(outX, outY) then
+        return vec(-100000, -100000)
+    else
+        return vec(outX, outY)
+    end
+end
+
 -- Convert vector from window to canvas space
+-- Meaning the location is between 0 and canvas size, while the window itself has a padding around the canvas
 function toCanvasSpace(v)
-    return vec(v.x - PADDING_HALF, v.y - PADDING_HALF)
+    return v - PADDING_HALF
 end
 
 -- And vice versa
 function toWindowSpace(v)
-    return vec(v.x + PADDING_HALF, v.y + PADDING_HALF)
+    return v + PADDING_HALF
 end
 
 function vec(xIn, yIn)
