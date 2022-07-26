@@ -11,6 +11,7 @@ function initBrush(inX, inY, inSize)
                 mode = "lazy" -- Options: normal, lazy
             }
 
+    -- Regular movement. Looks kind of shitty so probably won't use it
     function Brush:moveTo(mPos)
         if self.prev_pos ~= self.pos then
             self.prev_pos = self.pos
@@ -21,6 +22,7 @@ function initBrush(inX, inY, inSize)
         return
     end
 
+    -- Lazy mouse movement
     function Brush:moveToLazy(mPos)
         mouse_vec = mPos - self.pos
         mouse_dist = vLength(mouse_vec)
@@ -32,18 +34,23 @@ function initBrush(inX, inY, inSize)
         end
     end
 
+    -- Draw brush outline
     function Brush:drawOutline(mPos)
         lg.setCanvas(CANVAS_UI)
 
+        -- Add a circle if wraparound is used
         if self.wrap then
             lg.setColor(.15, .75, .15)
-            local wrap_vec = toWindowSpace(wrapped(toCanvasSpace(self.pos), WIDTH, HEIGHT, self.size))
-            lg.circle("line", wrap_vec.x, wrap_vec.y, self.size, 64)
+            local brush_wrap0 = toWindowSpace(wrapped(toCanvasSpace(self.pos), SIZE_OUT.x, SIZE_OUT.y, self.size))
+            local brush_wrap1 = toWindowSpace(wrapped(toCanvasSpace(brush_wrap0), SIZE_OUT.x, SIZE_OUT.y, self.size))
+            lg.circle("line", brush_wrap0.x, brush_wrap0.y, self.size, 64)
+            lg.circle("line", brush_wrap1.x, brush_wrap1.y, self.size, 64)
         end
 
         lg.setColor(.7, .15, .15)
         lg.circle("line", self.pos.x, self.pos.y, self.size, 64)
 
+        -- Lazy mouse radius and line to mouse
         if self.mode == "lazy" then 
             lg.setColor(.15, .15, .75)
             lg.circle("line", self.pos.x, self.pos.y, BRUSH_LAZY_RADIUS, 64)
@@ -53,6 +60,7 @@ function initBrush(inX, inY, inSize)
         lg.setCanvas()
     end
 
+    -- Use Brush to Draw
     function Brush:draw()
         if vLength(self.dir) == 0 then
             return
@@ -65,31 +73,44 @@ function initBrush(inX, inY, inSize)
 
         -- Add additional circles in between mouse positions if user draws furiously
         local steps = math.floor(vLength(movement) / self.spacing)
+        local draw_size = self.size * (1 / CANVAS_SCALE)
+
         if steps > 0 then
+            -- Iterate "backwards" from previous position to current position so the gradient is drawn correctly
             for i = steps, 0, -1 do
                 local tween_pos = toCanvasSpace(self.pos + normalize(movement) * i * self.spacing)
                 local tween_dir = normalize(lerp(self.dir, self.prev_dir, i / steps))
                 local lerp_col = toZeroOne(tween_dir)
-                lg.setColor(lerp_col.x, lerp_col.y, 0)
-                lg.circle("fill", tween_pos.x, tween_pos.y, self.size, 32)
 
+                lg.setColor(lerp_col.x, lerp_col.y, 0)
+                lg.circle("fill", tween_pos.x, tween_pos.y, draw_size, 32)
+
+                -- Wraparound support
                 if self.wrap then
-                    tween_wrap = wrapped(tween_pos, WIDTH, HEIGHT, self.size)
-                    lg.circle("fill", tween_wrap.x, tween_wrap.y, self.size, 32)
+                    -- Wraparound for the wraparound to handle cases where brush is wrapping OOB
+                    tween_wrap0 = wrapped(tween_pos, SIZE_OUT.x, SIZE_OUT.y, draw_size)
+                    tween_wrap1 = wrapped(tween_wrap0, SIZE_OUT.x, SIZE_OUT.y, draw_size)
+                    lg.circle("fill", tween_wrap0.x, tween_wrap0.y, draw_size, 32)
+                    lg.circle("fill", tween_wrap1.x, tween_wrap1.y, draw_size, 32)
+
                 end
             end
         end
 
+        -- Start drawing actual brush stroke
         local col = toZeroOne(self.dir)
         lg.setColor(col.x, col.y, 0)
 
         -- Since drawing onto canvas, convert the position to canvas coordinates before drawing
         local pos_convert = toCanvasSpace(self.pos)
-        lg.circle("fill", pos_convert.x, pos_convert.y, self.size, 32)
+        lg.circle("fill", pos_convert.x, pos_convert.y, draw_size, 32)
 
         if self.wrap then
-            local pos_wrap = wrapped(pos_convert, WIDTH, HEIGHT, self.size)
-            lg.circle("fill", pos_wrap.x, pos_wrap.y, self.size, 32)
+            -- Wraparound for the wraparound to handle cases where brush is wrapping OOB
+            local pos_wrap0 = wrapped(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size)
+            local pos_wrap1 = wrapped(pos_wrap0, SIZE_OUT.x, SIZE_OUT.y, draw_size)
+            lg.circle("fill", pos_wrap0.x, pos_wrap0.y, draw_size, 32)
+            lg.circle("fill", pos_wrap1.x, pos_wrap1.y, draw_size, 32)
         end
 
         lg.setCanvas()

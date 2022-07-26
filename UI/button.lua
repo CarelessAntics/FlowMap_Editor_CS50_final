@@ -27,3 +27,8 @@ function initButton(inPos, inID, inSize)
 
     return Button
 end
+
+function initSlider(inPos, inID, inLength, range0, range1)
+    -- TODO: Slider object inheriting from button
+    return
+end

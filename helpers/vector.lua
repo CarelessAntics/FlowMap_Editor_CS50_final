@@ -59,6 +59,7 @@ function normalize(vector)
     end
 end
 
+-- Copies a vector
 function vCopy(v)
     return vec(v.x, v.y)
 end
@@ -102,6 +103,8 @@ function toWindowSpace(v)
     return (v * CANVAS_SCALE) + PADDING
 end
 
+
+-- Actual Object function
 function vec(xIn, yIn)
     if yIn == nil then
         V = {x=xIn, y=xIn}

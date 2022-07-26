@@ -1,13 +1,28 @@
-require "./custom_vector"
-require "./helpers"
-require "./walker"
-require "./brush"
-require "./button"
+require "./helpers/vector"
+require "./helpers/helpers"
+require "./objects/walker"
+require "./objects/brush"
+require "./UI/button"
 
 lf = love.filesystem
 lg = love.graphics
 lw = love.window
 lm = love.math
+
+-- TODO: Brush 
+-- TODO: UI
+--      Frames
+--      preview window
+-- TODO: Orbiters
+-- TODO: Saving image
+-- TODO: Layers
+
+
+--[[-----------------------------------------
+
+GLOBALS START
+
+--]]-----------------------------------------
 
 -- Different Drawing modes
 mode_RANDOMWALK = false
@@ -24,8 +39,8 @@ BRUSH_LAZY_RADIUS = 100
 -- CURRENTLY_DRAWING = false
 
 -- Canvas and window params
-WIDTH = 1024
-HEIGHT = 1024
+--WIDTH = 1024
+--HEIGHT = 1024
 SIZE_OUT = vec(1024)
 CANVAS_SCALE = 1
 
@@ -42,12 +57,11 @@ CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 OUTDIR = "output/"
 OUTFILE = "outfile.png"
 
---mousePos = vec(0, 0)
+--[[-----------------------------------------
 
--- TODO Brush 
--- TODO UI
--- TODO Orbiters
--- TODO Saving image
+LOVE FUNCTIONS
+
+--]]-----------------------------------------
 
 function love.conf(t)
     t.console = true
@@ -62,7 +76,7 @@ function love.load()
     lg.setCanvas()
 
     for i = 0, 20 do
-        WALKERS[i] = createWalker(vec(math.random(WIDTH), math.random(HEIGHT)))
+        WALKERS[i] = createWalker(vec(math.random(SIZE_OUT.x), math.random(SIZE_OUT.y)))
     end
     brush = initBrush(0, 0, BRUSH_SIZE)
 end
@@ -161,6 +175,12 @@ function love.mousereleased( x, y, button, istouch, presses)
         end
     end
 end
+
+--[[-----------------------------------------
+
+CUSTOM FUNCTIONS
+
+--]]-----------------------------------------
 
 function saveScreen()
     if lf.createDirectory(OUTDIR) then
