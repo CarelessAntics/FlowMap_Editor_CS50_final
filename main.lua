@@ -8,6 +8,7 @@ lf = love.filesystem
 lg = love.graphics
 lw = love.window
 lm = love.math
+li = love.image
 
 -- TODO: Brush 
 -- TODO: UI
@@ -16,6 +17,8 @@ lm = love.math
 -- TODO: Orbiters
 -- TODO: Saving image
 -- TODO: Layers
+-- TODO: Image processing, blurs, filters etc
+-- TODO: Switch from drawing circles to canvases to writing into imagedata
 
 
 --[[-----------------------------------------

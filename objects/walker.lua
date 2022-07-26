@@ -67,18 +67,3 @@ function clamp(min, max, val)
         return val
     end
 end]]--
-
-function clamp(min, max, val)
-    return math.max(min, math.min(max, val))
-end
-
-function smoothStep(min, max, val)
-    if val < min then
-        return 0
-    elseif val >= max then
-        return max
-    else
-        val = (val - min) / (max - min)
-        return val * val * (3 - 2 * val)
-    end
-end

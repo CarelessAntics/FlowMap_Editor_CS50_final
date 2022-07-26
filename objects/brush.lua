@@ -1,4 +1,5 @@
-
+-- TODO: Convert brushes from drawing circles to canvas to drawing into imagedata
+-- See: Imagedata:mapPixel()
 function initBrush(inX, inY, inSize)
     Brush = {   size = inSize,
                 pos = vec(inX, inY),

@@ -1,4 +1,21 @@
 
+-- Clamp
+function clamp(min, max, val)
+    return math.max(min, math.min(max, val))
+end
+
+-- Smoothstep
+function smoothStep(edge0, edge1, val)
+    if val < edge0 then
+        return 0
+    elseif val >= edge1 then
+        return edge1
+    else
+        val = clamp(0, 1, (val - edge0) / (edge1 - edge0))
+        return val * val * (3 - 2 * val)
+    end
+end
+
 -- Linear interpolation
 function lerp(a, b, t)
     -- If a and b are vectors
