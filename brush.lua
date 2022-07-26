@@ -6,7 +6,7 @@ function initBrush(inX, inY, inSize)
                 dir = vec(0, 1),
                 prev_dir = dir,
                 drawing = false,
-                spacing = 4, -- Units = pixels,
+                spacing = 5, -- Units = pixels,
                 wrap = true, -- Brush wraparound
                 mode = "lazy" -- Options: normal, lazy
             }
@@ -25,8 +25,8 @@ function initBrush(inX, inY, inSize)
         mouse_vec = mPos - self.pos
         mouse_dist = vLength(mouse_vec)
         if mouse_dist > BRUSH_LAZY_RADIUS then
-            self.prev_pos = self.pos
-            self.prev_dir = self.dir
+            self.prev_pos = vCopy(self.pos)
+            self.prev_dir = vCopy(self.dir)
             self.pos = self.pos + normalize(mouse_vec) * (mouse_dist - BRUSH_LAZY_RADIUS)
             self.dir = normalize(mouse_vec)
         end
@@ -59,37 +59,37 @@ function initBrush(inX, inY, inSize)
         end
 
         lg.setCanvas(CANVAS_IMAGE)
-        local col = toZeroOne(self.dir)
-        lg.setColor(col.x, col.y, 0)
 
         -- Draw tweens backwards since we don't know future brush direction
         movement = self.prev_pos - self.pos 
 
         -- Add additional circles in between mouse positions if user draws furiously
-        if vLength(movement) / self.spacing > 0 then
-            for i = 0, math.floor(vLength(movement) / self.spacing) do
+        local steps = math.floor(vLength(movement) / self.spacing)
+        if steps > 0 then
+            for i = steps, 0, -1 do
                 local tween_pos = toCanvasSpace(self.pos + normalize(movement) * i * self.spacing)
-                local tween_dir = normalize(lerp(self.dir, self.prev_dir, (i * self.spacing) / vLength(movement)))
-                --local tween_dir = normalize(lerp(vec(0, 0), vec(1, 1), (i * self.spacing) / vLength(movement)))
+                local tween_dir = normalize(lerp(self.dir, self.prev_dir, i / steps))
                 local lerp_col = toZeroOne(tween_dir)
-                --local lerp_col = tween_dir
                 lg.setColor(lerp_col.x, lerp_col.y, 0)
-                lg.circle("fill", tween_pos.x, tween_pos.y, self.size, 64)
+                lg.circle("fill", tween_pos.x, tween_pos.y, self.size, 32)
 
                 if self.wrap then
                     tween_wrap = wrapped(tween_pos, WIDTH, HEIGHT, self.size)
-                    lg.circle("fill", tween_wrap.x, tween_wrap.y, self.size, 64)
+                    lg.circle("fill", tween_wrap.x, tween_wrap.y, self.size, 32)
                 end
             end
         end
 
+        local col = toZeroOne(self.dir)
+        lg.setColor(col.x, col.y, 0)
+
         -- Since drawing onto canvas, convert the position to canvas coordinates before drawing
         local pos_convert = toCanvasSpace(self.pos)
-        lg.circle("fill", pos_convert.x, pos_convert.y, self.size, 64)
+        lg.circle("fill", pos_convert.x, pos_convert.y, self.size, 32)
 
         if self.wrap then
             local pos_wrap = wrapped(pos_convert, WIDTH, HEIGHT, self.size)
-            lg.circle("fill", pos_wrap.x, pos_wrap.y, self.size, 64)
+            lg.circle("fill", pos_wrap.x, pos_wrap.y, self.size, 32)
         end
 
         lg.setCanvas()

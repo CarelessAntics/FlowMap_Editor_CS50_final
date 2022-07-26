@@ -23,14 +23,19 @@ BRUSH_SIZE = 30
 BRUSH_LAZY_RADIUS = 100
 -- CURRENTLY_DRAWING = false
 
--- Canvas params
+-- Canvas and window params
 WIDTH = 1024
 HEIGHT = 1024
-PADDING = vec(500, 200)
+SIZE_OUT = vec(1024)
+CANVAS_SCALE = 1
+
+PADDING_min = vec(300, 100)
+PADDING = vec(300, 100)
 PADDING_HALF = PADDING / 2
-lw.setMode(WIDTH + PADDING.x, HEIGHT + PADDING.y, {resizable = false})
-CANVAS_IMAGE = lg.newCanvas(WIDTH, HEIGHT)
-CANVAS_UI = lg.newCanvas(WIDTH + PADDING.x, HEIGHT + PADDING.y)
+
+lw.setMode(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, {resizable = true})
+CANVAS_IMAGE = lg.newCanvas(SIZE_OUT.x, SIZE_OUT.y)
+CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 
 -- Export params
 -- Save location in %appdata%/Roaming/LOVE/
@@ -50,6 +55,8 @@ end
 
 function love.load()
 
+    windowManager()
+
     lg.setCanvas(CANVAS_IMAGE)
     lg.clear(.5, .5, 0, 1)
     lg.setCanvas()
@@ -61,6 +68,8 @@ function love.load()
 end
 
 function love.update()
+
+    windowManager()
 
     -- Return mouse position
     mousePos = mouseHandler()
@@ -103,20 +112,27 @@ function love.draw()
     end
 
     lg.setColor(1, 1, 1)
-    lg.draw(CANVAS_IMAGE, PADDING_HALF.x, PADDING_HALF.y)
+    lg.draw(CANVAS_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
     lg.draw(CANVAS_UI)
 
 
     vec1 = vec(1, .5)
     vec2 = vec(.5, 2)
     mouseCanvas = toCanvasSpace(mousePos)
-    lg.print(lf.getIdentity(), WIDTH/2, HEIGHT/2)
-    lg.print(mousePos.x .. ", " .. mousePos.y, WIDTH/2, HEIGHT/2 + 15)
-    lg.print(type(vec(0,0)) .. ", " .. type(4), WIDTH/2, HEIGHT/2 + 30)
-    lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, WIDTH/2, HEIGHT/2 + 45)
-    lg.print((vec1 / vec2).x .. ", " .. (vec1 / vec2).y, WIDTH/2, HEIGHT/2 + 60)
-    lg.print((vec1 * 2).x .. ", " .. (vec1 * 2).y, WIDTH/2, HEIGHT/2 + 75)
-    lg.print((vec1 / 2).x .. ", " .. (vec1 / 2).y, WIDTH/2, HEIGHT/2 + 90)
+    lg.print(lf.getIdentity(), PADDING.x + 30, PADDING.y + 30)
+    lg.print(mousePos.x .. ", " .. mousePos.y, PADDING.x + 30, PADDING.y + 30 + 15)
+    lg.print(type(vec(0,0)) .. ", " .. type(4), PADDING.x + 30, PADDING.y + 30 + 30)
+    lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING.x + 30, PADDING.y + 30 + 45)
+    lg.print(CANVAS_SCALE, PADDING.x + 30, PADDING.y + 30 + 60)
+    lg.print((vec1 * 2).x .. ", " .. (vec1 * 2).y, PADDING.x + 30, PADDING.y + 30 + 75)
+    lg.print((vec1 / 2).x .. ", " .. (vec1 / 2).y, PADDING.x + 30, PADDING.y + 30 + 90)
+
+    --[[
+    for i = 0, WIDTH do
+        local col = lerp(0, 1, i / WIDTH)
+        lg.setColor(col, col, col)
+        lg.circle('fill', i, PADDING.y + 550, 10, 32)
+    end]]
 end
 
 function love.keypressed(key, scancode, isrepeat)
@@ -171,4 +187,24 @@ function mouseHandler()
     end
 
     return vec(mX, mY)
+end
+
+-- Manages scaling and positioning of canvases when window size changes
+function windowManager()
+    local size_x, size_y = lg.getDimensions()
+    local ui_x, ui_y = CANVAS_UI:getDimensions()
+    local window_size = vec(size_x, size_y)
+
+    -- Refresh UI layer if dimension mismatch between it and window
+    if ui_x ~= size_x or ui_y ~= size_y then
+        CANVAS_UI = lg.newCanvas(size_x, size_y)
+    end
+
+    local scales = (window_size - (PADDING_min * 2)) / SIZE_OUT
+    CANVAS_SCALE = math.min(scales.x, scales.y)
+
+    PADDING.x = (size_x - SIZE_OUT.x * CANVAS_SCALE) / 2
+    PADDING.y = (size_y - SIZE_OUT.y * CANVAS_SCALE) / 2
+
+    PADDING_HALF = PADDING / 2
 end

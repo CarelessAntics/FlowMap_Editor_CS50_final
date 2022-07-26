@@ -59,6 +59,10 @@ function normalize(vector)
     end
 end
 
+function vCopy(v)
+    return vec(v.x, v.y)
+end
+
 -- Returns a wrapped around vector
 function wrapped(inVec, in_width, in_height, in_size)
     
@@ -90,16 +94,21 @@ end
 -- Convert vector from window to canvas space
 -- Meaning the location is between 0 and canvas size, while the window itself has a padding around the canvas
 function toCanvasSpace(v)
-    return v - PADDING_HALF
+    return (v - PADDING) * (1 / CANVAS_SCALE)
 end
 
 -- And vice versa
 function toWindowSpace(v)
-    return v + PADDING_HALF
+    return (v * CANVAS_SCALE) + PADDING
 end
 
 function vec(xIn, yIn)
-    V = {x=xIn, y=yIn}
+    if yIn == nil then
+        V = {x=xIn, y=xIn}
+    else
+        V = {x=xIn, y=yIn}
+    end
+
 
     -- Metatable. Define functions for +-*/ etc operators
     local mt = {
