@@ -9,6 +9,7 @@ lg = love.graphics
 lw = love.window
 lm = love.math
 li = love.image
+lt = love.timer
 
 -- TODO: Brush 
 -- TODO: UI
@@ -37,7 +38,7 @@ WALKERS = {}
 WALKERS_RESPAWN = true
 
 -- Drawing mode params
-BRUSH_SIZE = 30
+BRUSH_SIZE = 60
 BRUSH_LAZY_RADIUS = 100
 -- CURRENTLY_DRAWING = false
 
@@ -47,11 +48,17 @@ BRUSH_LAZY_RADIUS = 100
 SIZE_OUT = vec(1024)
 CANVAS_SCALE = 1
 
-PADDING_min = vec(300, 100)
-PADDING = vec(300, 100)
+PADDING_min = vec(300, 200)
+PADDING = vCopy(PADDING_min)
 PADDING_HALF = PADDING / 2
 
 lw.setMode(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, {resizable = true})
+DATA_IMAGE = li.newImageData(SIZE_OUT.x, SIZE_OUT.y, "rgba16")
+function pixelInit(x, y, r, g, b, a)
+    return .5, .5, 0, 1
+end
+DATA_IMAGE:mapPixel(pixelInit)
+DISPLAY_IMAGE = lg.newImage(DATA_IMAGE)
 CANVAS_IMAGE = lg.newCanvas(SIZE_OUT.x, SIZE_OUT.y)
 CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 
@@ -102,6 +109,9 @@ function love.update()
     -- Drawing mode
     elseif mode_DRAW then
         brush:moveToLazy(mousePos)
+        if brush.drawing then
+            brush:draw()
+        end
         --brush:moveTo(mousePos)
     end
 end
@@ -122,14 +132,13 @@ function love.draw()
 
     -- Drawing mode
     elseif mode_DRAW then
-        if brush.drawing then
-            brush:draw()
-        end
         brush:drawOutline(mousePos)
     end
 
     lg.setColor(1, 1, 1)
-    lg.draw(CANVAS_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
+    DISPLAY_IMAGE:replacePixels(DATA_IMAGE)
+    lg.draw(DISPLAY_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
+    --lg.draw(CANVAS_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
     lg.draw(CANVAS_UI)
 
 
@@ -141,7 +150,7 @@ function love.draw()
     lg.print(type(vec(0,0)) .. ", " .. type(4), PADDING.x + 30, PADDING.y + 30 + 30)
     lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING.x + 30, PADDING.y + 30 + 45)
     lg.print(CANVAS_SCALE, PADDING.x + 30, PADDING.y + 30 + 60)
-    lg.print((vec1 * 2).x .. ", " .. (vec1 * 2).y, PADDING.x + 30, PADDING.y + 30 + 75)
+    lg.print(lt.getFPS(), PADDING.x + 30, PADDING.y + 30 + 75)
     lg.print((vec1 / 2).x .. ", " .. (vec1 / 2).y, PADDING.x + 30, PADDING.y + 30 + 90)
 
     --[[
@@ -191,8 +200,8 @@ function saveScreen()
             lf.newFile(OUTDIR .. OUTFILE)
         end
 
-        local image_out = CANVAS_IMAGE:newImageData()
-        image_out:encode("png", OUTDIR .. OUTFILE)
+        -- local image_out = CANVAS_IMAGE:newImageData()
+        DATA_IMAGE:encode("png", OUTDIR .. OUTFILE)
     end
 end
 

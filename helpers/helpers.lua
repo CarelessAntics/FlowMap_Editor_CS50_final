@@ -9,7 +9,7 @@ function smoothStep(edge0, edge1, val)
     if val < edge0 then
         return 0
     elseif val >= edge1 then
-        return edge1
+        return 1
     else
         val = clamp(0, 1, (val - edge0) / (edge1 - edge0))
         return val * val * (3 - 2 * val)
