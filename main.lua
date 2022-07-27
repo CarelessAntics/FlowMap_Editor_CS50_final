@@ -2,6 +2,7 @@ require "./helpers/vector"
 require "./helpers/helpers"
 require "./objects/walker"
 require "./objects/brush"
+require "./imageprocessing/filters"
 require "./UI/button"
 
 lf = love.filesystem
@@ -53,12 +54,8 @@ PADDING = vCopy(PADDING_min)
 PADDING_HALF = PADDING / 2
 
 lw.setMode(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, {resizable = true})
-DATA_IMAGE = li.newImageData(SIZE_OUT.x, SIZE_OUT.y, "rgba16")
-function pixelInit(x, y, r, g, b, a)
-    return .5, .5, 0, 1
-end
-DATA_IMAGE:mapPixel(pixelInit)
-DISPLAY_IMAGE = lg.newImage(DATA_IMAGE)
+IMGDATA_MAIN = li.newImageData(SIZE_OUT.x, SIZE_OUT.y, "rgba16")
+DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
 CANVAS_IMAGE = lg.newCanvas(SIZE_OUT.x, SIZE_OUT.y)
 CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 
@@ -80,6 +77,11 @@ end
 function love.load()
 
     windowManager()
+
+    local function pixelInit(x, y, r, g, b, a)
+        return 0.5, 0.5, 0, 1
+    end
+    IMGDATA_MAIN:mapPixel(pixelInit)
 
     lg.setCanvas(CANVAS_IMAGE)
     lg.clear(.5, .5, 0, 1)
@@ -109,7 +111,7 @@ function love.update()
     -- Drawing mode
     elseif mode_DRAW then
         brush:moveToLazy(mousePos)
-        if brush.drawing then
+        if brush.drawing and (brush.pos ~= brush.prev_pos) then
             brush:draw()
         end
         --brush:moveTo(mousePos)
@@ -136,7 +138,7 @@ function love.draw()
     end
 
     lg.setColor(1, 1, 1)
-    DISPLAY_IMAGE:replacePixels(DATA_IMAGE)
+    DISPLAY_IMAGE:replacePixels(IMGDATA_MAIN)
     lg.draw(DISPLAY_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
     --lg.draw(CANVAS_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
     lg.draw(CANVAS_UI)
@@ -147,9 +149,9 @@ function love.draw()
     mouseCanvas = toCanvasSpace(mousePos)
     lg.print(lf.getIdentity(), PADDING.x + 30, PADDING.y + 30)
     lg.print(mousePos.x .. ", " .. mousePos.y, PADDING.x + 30, PADDING.y + 30 + 15)
-    lg.print(type(vec(0,0)) .. ", " .. type(4), PADDING.x + 30, PADDING.y + 30 + 30)
-    lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING.x + 30, PADDING.y + 30 + 45)
-    lg.print(CANVAS_SCALE, PADDING.x + 30, PADDING.y + 30 + 60)
+    lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING.x + 30, PADDING.y + 30 + 30)
+    lg.print(brush.pos.x .. ", " .. brush.pos.y, PADDING.x + 30, PADDING.y + 30 + 45)
+    lg.print(brush.prev_pos.x .. ", " .. brush.prev_pos.y, PADDING.x + 30, PADDING.y + 30 + 60)
     lg.print(lt.getFPS(), PADDING.x + 30, PADDING.y + 30 + 75)
     lg.print((vec1 / 2).x .. ", " .. (vec1 / 2).y, PADDING.x + 30, PADDING.y + 30 + 90)
 
@@ -167,6 +169,12 @@ function love.keypressed(key, scancode, isrepeat)
     end
     if key == 'c' then
         WALKERS_RESPAWN = false
+    end
+    if key == 'n' then
+        filterNormalize(IMGDATA_MAIN)
+    end
+    if key == 'b' then
+        filterBoxBlur(IMGDATA_MAIN, 2, 5)
     end
 end
 
@@ -201,7 +209,7 @@ function saveScreen()
         end
 
         -- local image_out = CANVAS_IMAGE:newImageData()
-        DATA_IMAGE:encode("png", OUTDIR .. OUTFILE)
+        IMGDATA_MAIN:encode("png", OUTDIR .. OUTFILE)
     end
 end
 

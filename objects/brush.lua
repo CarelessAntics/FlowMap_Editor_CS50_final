@@ -6,11 +6,13 @@ function initBrush(inX, inY, inSize)
                 dir = vec(0, 1),
                 prev_dir = dir,
                 drawing = false,
-                alpha = li.newImageData("assets/alphas/2.png"),
+                drawTime = 0,
+                alpha = li.newImageData("assets/alphas/1.png"),
                 size = inSize,
-                hardness = .3,
+                hardness = 0,
                 spacing = 5, -- Units = pixels,
                 wrap = true, -- Brush wraparound
+                rotate = true,
                 mode = "lazy" -- Options: normal, lazy
             }
 
@@ -29,9 +31,11 @@ function initBrush(inX, inY, inSize)
     function Brush:moveToLazy(mPos)
         mouse_vec = mPos - self.pos
         mouse_dist = vLength(mouse_vec)
-        if mouse_dist > BRUSH_LAZY_RADIUS then
-            self.prev_pos = vCopy(self.pos)
-            self.prev_dir = vCopy(self.dir)
+
+        self.prev_pos = self.pos
+        self.prev_dir = self.dir
+
+        if mouse_dist > BRUSH_LAZY_RADIUS + self.spacing then
 
             -- Limit movement while drawing to steps defined in object to prevent gaps in stroke
             if self.drawing then
@@ -76,7 +80,7 @@ function initBrush(inX, inY, inSize)
         end
 
         -- Map pixel colors using computed radial gradient
-        function pixelFunction(x, y, r, g, b, a)
+        local function pixelFunction(x, y, r, g, b, a)
             -- Cheese in brush and color vectors as globals
             local brush_area = 1 - (vLength({x = x - PIXEL_INPUT_VEC0.x, y = y - PIXEL_INPUT_VEC0.y}) / PIXEL_INPUT_SIZE)
             brush_area = smoothStep(0, 1 - self.hardness, brush_area)
@@ -92,8 +96,30 @@ function initBrush(inX, inY, inSize)
             return r, g, b, a
         end
 
+        local draw_size = self.size * (1 / CANVAS_SCALE)
+
+
+        -- Set color from direction vector
+        local col = toZeroOne(self.dir)
+
+        -- Since drawing onto canvas, convert the position to canvas coordinates before drawing
+        local pos_convert = toCanvasSpace(self.pos)
+        self:drawToImgData(pos_convert, draw_size, col)
+
+        if self.wrap then
+            -- Wraparound for the wraparound to handle cases where brush is wrapping OOB
+            local pos_wrap0 = wrapped(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size)
+            self:drawToImgData(pos_wrap0, draw_size, col)
+
+            local pos_wrap1 = wrapped(pos_wrap0, SIZE_OUT.x, SIZE_OUT.y, draw_size)
+            self:drawToImgData(pos_wrap1, draw_size, col)
+        end
+    end
+
+    function Brush:drawToImgData(inVector, draw_size, col)
+
         -- Map pixel colors using image alpha
-        function pixelFunctionAlpha(x, y, r, g, b, a)
+        local function pixelFunctionAlpha(x, y, r, g, b, a)
 
             -- Convert from global xy to local alpha xy
             local alpha_x = ((x - PIXEL_INPUT_CORNER.x) / PIXEL_INPUT_DIMS.x) * PIXEL_INPUT_ALPHADIMS.x
@@ -119,49 +145,24 @@ function initBrush(inX, inY, inSize)
             return r, g, b, a
         end
 
-        lg.setCanvas(CANVAS_IMAGE)
-
-        local draw_size = self.size * (1 / CANVAS_SCALE)
-
-
-        -- Start drawing actual brush stroke
-        local col = toZeroOne(self.dir)
-        lg.setColor(col.x, col.y, 0)
-
-        -- Since drawing onto canvas, convert the position to canvas coordinates before drawing
-        local pos_convert = toCanvasSpace(self.pos)
-        self:drawToImgData(pos_convert, draw_size, col)
-        
-        --lg.circle("fill", pos_convert.x, pos_convert.y, draw_size, 32)
-
-        if self.wrap then
-            -- Wraparound for the wraparound to handle cases where brush is wrapping OOB
-            local pos_wrap0 = wrapped(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size)
-            self:drawToImgData(pos_wrap0, draw_size, col)
-
-            local pos_wrap1 = wrapped(pos_wrap0, SIZE_OUT.x, SIZE_OUT.y, draw_size)
-            self:drawToImgData(pos_wrap1, draw_size, col)
-            --[[lg.circle("fill", pos_wrap0.x, pos_wrap0.y, draw_size, 32)
-            lg.circle("fill", pos_wrap1.x, pos_wrap1.y, draw_size, 32)]]
-        end
-
-        lg.setCanvas()
-    end
-
-    function Brush:drawToImgData(inVector, draw_size, col)
-
+        -- Brush radius to diameter
         local brush_w = draw_size * 2
         local brush_h = draw_size * 2
 
+        -- Brush_dim is basically lower right corner distance from draw area 0-edges
+        -- Brush_loc is top left corner of brush area
         local brush_dim = SIZE_OUT - inVector + vec(draw_size)
         local brush_loc = inVector - vec(draw_size)
 
+        -- Brush width/height either a square of size (draw_size * 2) or distance from 0-edge, whichever is lower
         brush_w = math.min(brush_w, brush_dim.x)
         brush_h = math.min(brush_h, brush_dim.y)
 
+        -- Cap location minimum to .1 to avoid random errors
         brush_loc.x = math.max(brush_loc.x, .1)
         brush_loc.y = math.max(brush_loc.y, .1)
 
+        -- Width/height of the brush alpha image
         local alpha_w, alpha_h = self.alpha:getDimensions()
 
         -- Cheese in brush and color vectors as globals
@@ -178,7 +179,7 @@ function initBrush(inX, inY, inSize)
         PIXEL_INPUT_COL = {r = col.x, g = col.y, b = 0}
 
         if (brush_w > 0 and brush_h > 0) and (inVector.x > -draw_size and inVector.y > -draw_size) then
-            DATA_IMAGE:mapPixel(pixelFunctionAlpha, brush_loc.x, brush_loc.y, brush_w, brush_h)
+            IMGDATA_MAIN:mapPixel(pixelFunctionAlpha, brush_loc.x, brush_loc.y, brush_w, brush_h)
         end
     end
 

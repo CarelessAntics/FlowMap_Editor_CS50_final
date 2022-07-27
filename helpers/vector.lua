@@ -51,7 +51,7 @@ end
 
 -- Return a vector of length 1
 function normalize(vector)
-    length = vLength(vector)
+    local length = vLength(vector)
     if length ~= 0 then
         return vector / length
     else
