@@ -1,61 +1,68 @@
-function createWalker(inPos)
-    local Walker = {  pos = inPos,
-                dir = vec(0, 1),
-                vel = 2,
-                size = 50,
-                rot_rate = 0.003,
-                seed = math.random(32000),
-                dead = false,
+
+--[[walker_params = {   pos = vec(0),
+                    dir = vec(0, 1),
+                    vel = 2,
+                    size = size,
+                    rot_rate = 0.003,
+                    seed = math.random(32000),
+                    dead = false,
+                    brush = nil
+                }]]
+
+walker_params = {   vel = 10,
+                    rot_rate = 0.5,
+                    seed = math.random(32000),
+                    dead = false,
             }
 
-    function Walker:walk()
-        modifier_rot = lm.noise(self.seed) * 2 - 1
-        modifier_size = lm.noise(self.seed * 2) * 2 - 1
+-- Inherit from Brush
+Walker = Brush:new(walker_params)
 
-        self.size = clamp(30, 90, self.size + modifier_size * 1)
-        self.dir = vRot(self.dir, self.rot_rate * modifier_rot)
+function Walker:new(o, inPos, inSize)
+    o = o or {}
+    local mt = {__index = self}
+    setmetatable(o, mt)
 
-        -- Constrain direction vector
-        self.dir.y = math.abs(self.dir.y)
-        self.dir.x = clamp(-.7, .7, self.dir.x)
-        self.dir = normalize(self.dir)
+    -- Instance parameters
+    o.pos = inPos
+    o.size = inSize
+    o.seed = math.random(32000)
+    o.dead = false
 
-        velocity = vScalarMult(self.dir, self.vel)
-        self.pos = vAdd(self.pos, velocity)
-        --self.pos.x = (self.pos.x % WIDTH)
-        --self.pos.y = (self.pos.y % (HEIGHT))
-        --if (self.pos.x > WIDTH + self.size) or (self.pos.x < -self.size) or (self.pos.y > HEIGHT + self.size) then
-
-        --Wraparound on x
-        if self.pos.x > WIDTH + self.size/2 then
-            self.pos.x = -self.size/2
-        elseif self.pos.x < -self.size/2 then
-            self.pos.x = WIDTH + self.size/2
-        end
-
-        --Wraparound on y
-        if self.pos.y > HEIGHT + self.size/2 then
-            if WALKERS_RESPAWN then
-                self.pos.y = -self.size/2
-            else
-                self.dead = true
-            end
-        elseif self.pos.y < -self.size/2 then
-            self.pos.y = WIDTH + self.size/2
-        end
-
-        self.seed = self.seed + .001
-    end
-
-    function Walker:draw()
-        lg.setCanvas(CANVAS_IMAGE)
-        lg.setColor(self.dir.x*0.5+0.5, self.dir.y*0.5+0.5, 0)
-        lg.circle("fill", self.pos.x, self.pos.y, self.size, 64)
-        lg.setCanvas()
-    end
-
-    return Walker
+    return o
 end
+
+
+function Walker:walk()
+    local modifier_rot = lm.noise(self.seed) * 2 - 1
+    local modifier_size = lm.noise(self.seed * 2) * 2 - 1
+
+    self.size = clamp(30, 90, self.size + modifier_size * 1)
+    --self.dir = vRot(self.dir, self.rot_rate * modifier_rot)
+
+    -- Constrain direction vector
+    --[[self.dir.y = math.abs(self.dir.y)
+    self.dir.x = clamp(-.7, .7, self.dir.x)
+    self.dir = normalize(self.dir)]]
+
+    self.dir = normalize(vec(modifier_rot, 1) * self.rot_rate)
+
+    velocity = vScalarMult(self.dir, self.vel)
+    self.pos = vAdd(self.pos, velocity)
+    local draw_size = self.size * (1 / CANVAS_SCALE) * 2
+    local OOB_x = (self.pos.x > -draw_size and self.pos.x < SIZE_OUT.x * CANVAS_SCALE + draw_size)
+    local OOB_y = (self.pos.y > -draw_size and self.pos.y < SIZE_OUT.y * CANVAS_SCALE + draw_size)
+
+    if OOB_x and OOB_y then
+        self.dead = false
+    else
+        self.pos = wrapped(self.pos, SIZE_OUT.x, SIZE_OUT.y, self.size)
+        self.dead = true
+    end
+
+    self.seed = self.seed + .01
+end
+
 
 --[[
 function clamp(min, max, val)

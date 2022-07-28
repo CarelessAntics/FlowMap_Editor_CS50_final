@@ -1,9 +1,4 @@
-require "./helpers/vector"
-require "./helpers/helpers"
-require "./objects/walker"
-require "./objects/brush"
-require "./imageprocessing/filters"
-require "./UI/button"
+if arg[#arg] == "vsc_debug" then require("lldebugger").start() end
 
 lf = love.filesystem
 lg = love.graphics
@@ -11,6 +6,13 @@ lw = love.window
 lm = love.math
 li = love.image
 lt = love.timer
+
+require "./helpers/vector"
+require "./helpers/helpers"
+require "./objects/brush"
+require "./objects/walker"
+require "./imageprocessing/filters"
+require "./UI/button"
 
 -- TODO: Brush 
 -- TODO: UI
@@ -30,8 +32,8 @@ GLOBALS START
 --]]-----------------------------------------
 
 -- Different Drawing modes
-mode_RANDOMWALK = false
-mode_DRAW = true
+mode_RANDOMWALK = true
+mode_DRAW = false
 mode_ORBIT = false
 
 -- Random walk params
@@ -78,6 +80,7 @@ function love.load()
 
     windowManager()
 
+    -- Initialize the image to 0-vectors (or 0.5-vectors since they need to encode -1...1 data)
     local function pixelInit(x, y, r, g, b, a)
         return 0.5, 0.5, 0, 1
     end
@@ -87,10 +90,11 @@ function love.load()
     lg.clear(.5, .5, 0, 1)
     lg.setCanvas()
 
-    for i = 0, 20 do
-        WALKERS[i] = createWalker(vec(math.random(SIZE_OUT.x), math.random(SIZE_OUT.y)))
+    for i = 0, 5 do
+        WALKERS[i] = Walker:new(nil, vec(math.random(SIZE_OUT.x), math.random(SIZE_OUT.y)), 50)
     end
-    brush = initBrush(0, 0, BRUSH_SIZE)
+    drawing_brush = Brush:new(nil, vec(50), BRUSH_SIZE)
+    --drawing_brush = TestBrush:new(nil, vec(50), BRUSH_SIZE)
 end
 
 function love.update()
@@ -103,18 +107,22 @@ function love.update()
     -- Random Walker mode
     if mode_RANDOMWALK then
         for i = 0, #WALKERS do
-            if WALKERS[i] ~= nil and not WALKERS[i].dead then
+            if WALKERS[i] ~= nil then
                 WALKERS[i]:walk()
+                WALKERS[i]:draw()
+            end
+            if WALKERS[i] ~= nil and WALKERS[i].dead and not WALKERS_RESPAWN then
+                WALKERS[i] = nil
             end
         end
 
     -- Drawing mode
     elseif mode_DRAW then
-        brush:moveToLazy(mousePos)
-        if brush.drawing and (brush.pos ~= brush.prev_pos) then
-            brush:draw()
+        drawing_brush:moveToLazy(mousePos)
+        if drawing_brush.drawing and (drawing_brush.pos ~= drawing_brush.prev_pos) then
+            drawing_brush:draw()
         end
-        --brush:moveTo(mousePos)
+        --drawing_brush:moveTo(mousePos)
     end
 end
 
@@ -125,16 +133,16 @@ function love.draw()
     lg.setCanvas()
 
     -- Random Walker mode
-    if mode_RANDOMWALK then
+    --[[if mode_RANDOMWALK then
         for i = 0, #WALKERS do
             if WALKERS[i] ~= nil then
-                WALKERS[i]:draw()
+                
             end
-        end
+        end]]
 
     -- Drawing mode
-    elseif mode_DRAW then
-        brush:drawOutline(mousePos)
+    if mode_DRAW then
+        drawing_brush:drawOutline(mousePos)
     end
 
     lg.setColor(1, 1, 1)
@@ -150,9 +158,9 @@ function love.draw()
     lg.print(lf.getIdentity(), PADDING.x + 30, PADDING.y + 30)
     lg.print(mousePos.x .. ", " .. mousePos.y, PADDING.x + 30, PADDING.y + 30 + 15)
     lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING.x + 30, PADDING.y + 30 + 30)
-    lg.print(brush.pos.x .. ", " .. brush.pos.y, PADDING.x + 30, PADDING.y + 30 + 45)
-    lg.print(brush.prev_pos.x .. ", " .. brush.prev_pos.y, PADDING.x + 30, PADDING.y + 30 + 60)
-    lg.print(lt.getFPS(), PADDING.x + 30, PADDING.y + 30 + 75)
+    lg.print(drawing_brush.pos.x .. ", " .. drawing_brush.pos.y, PADDING.x + 30, PADDING.y + 30 + 45)
+    lg.print(drawing_brush.prev_pos.x .. ", " .. drawing_brush.prev_pos.y, PADDING.x + 30, PADDING.y + 30 + 60)
+    lg.print("FPS: " .. lt.getFPS(), PADDING.x + 30, PADDING.y + 30 + 75)
     lg.print((vec1 / 2).x .. ", " .. (vec1 / 2).y, PADDING.x + 30, PADDING.y + 30 + 90)
 
     --[[
@@ -180,18 +188,18 @@ end
 
 function love.mousepressed(x, y, button)
     if mode_DRAW then
-        if button == 1 and not brush.drawing then
-            brush.drawing = true
+        if button == 1 and not drawing_brush.drawing then
+            drawing_brush.drawing = true
         end
     elseif mode_RANDOMWALK then
-        WALKERS[#WALKERS+1] = createWalker(vec(x, y))
+        WALKERS[#WALKERS+1] = Walker:new(nil, vec(x, y), 50)
     end
 end
 
 function love.mousereleased( x, y, button, istouch, presses)
     if mode_DRAW then
-        if button == 1 and brush.drawing then
-            brush.drawing = false
+        if button == 1 and drawing_brush.drawing then
+            drawing_brush.drawing = false
         end
     end
 end
@@ -202,6 +210,7 @@ CUSTOM FUNCTIONS
 
 --]]-----------------------------------------
 
+--- Save image
 function saveScreen()
     if lf.createDirectory(OUTDIR) then
         if lf.getInfo(OUTDIR .. OUTFILE) ~= nil then
@@ -217,6 +226,7 @@ function clearWalkers()
     WALKERS = {}
 end
 
+--- Return mouse position, or 0 if nil
 function mouseHandler()
     local mX, mY = love.mouse.getPosition()
     if mX == nil then
@@ -229,7 +239,7 @@ function mouseHandler()
     return vec(mX, mY)
 end
 
--- Manages scaling and positioning of canvases when window size changes
+--- Manages scaling and positioning of canvases when window size changes
 function windowManager()
     local size_x, size_y = lg.getDimensions()
     local ui_x, ui_y = CANVAS_UI:getDimensions()

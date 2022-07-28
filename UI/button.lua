@@ -5,7 +5,8 @@ function initButton(inPos, inID, inSize)
                         ID = inID,
                         state = false,
                         graphics = "",
-                        btn_type = "rect"
+                        btn_type = "rect",
+                        action = nil -- function: what happens when button is clicked
                     }
 
     function Button:isHitRect(inVec)

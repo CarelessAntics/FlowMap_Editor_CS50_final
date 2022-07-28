@@ -1,10 +1,16 @@
 
--- Clamp
+--- Clamps input between min and max
+---@param min number
+---@param max number
+---@param val number
 function clamp(min, max, val)
     return math.max(min, math.min(max, val))
 end
 
--- Smoothstep
+--- Smoothstep function. Smoothly fits value between 0...1 based on val. edge0 determines where 0 starts and edge1 where 1 ends
+---@param edge0 number
+---@param edge1 number
+---@param val number
 function smoothStep(edge0, edge1, val)
     if val < edge0 then
         return 0
@@ -16,7 +22,10 @@ function smoothStep(edge0, edge1, val)
     end
 end
 
--- Linear interpolation
+--- Linear interpolation. Linearly interpolates (duh) value between a...b based on value t
+---@param a number or table
+---@param b number or table
+---@param t number
 function lerp(a, b, t)
     -- If a and b are vectors
     if type(a) == "table" and type(b) == "table" then
@@ -28,7 +37,8 @@ function lerp(a, b, t)
     end
 end
 
--- convert from -1...1 to 0...1
+--- Converts value n from -1...1 to 0...1
+---@param n number or table
 function toZeroOne(n)
     -- If vectors
     if type(n) == "table" then
@@ -40,7 +50,8 @@ function toZeroOne(n)
     end
 end
 
--- convert from 0...1 to -1...1
+--- Converts value n from 0...1 to -1...1
+---@param n number or table
 function toNegOneOne(n)
     -- If vectors
     if type(n) == "table" then
