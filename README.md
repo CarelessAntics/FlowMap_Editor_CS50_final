@@ -1,4 +1,4 @@
-# FlowMap Editor CS50 Final Project
+# FlowMap Editor CS50 2022 Final Project
 ## CS50
 Work in progress final project for the CS50x 2022 Intro to Computer Science course
 
