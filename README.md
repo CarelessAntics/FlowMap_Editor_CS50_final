@@ -4,7 +4,7 @@ Work in progress final project for the CS50x 2022 Intro to Computer Science cour
 
 ## What is this
 
-A software for painting 2D vectormaps to be used in video game shaders
+A software for painting 2D vectormaps to be used in video game shaders, using the LÖVE framework (https://love2d.org/)
 
 TODO: Make better
 
