@@ -27,7 +27,10 @@ end
 -- Box blur implementation. 
 -- inSamples: more = better quality
 -- inSeparation: more = larger blur radius
-function filterBoxBlur(inImgData, inSamples, inSeparation)
+function filterBoxBlur(inImgData)
+
+    local inSamples = 4
+    local inSeparation = 8
 
     -- Per pixel function
     local function pixelFunction(x, y, r, g, b, a)

@@ -13,6 +13,8 @@ require "./objects/brush"
 require "./objects/walker"
 require "./imageprocessing/filters"
 require "./UI/button"
+require "./UI/frame"
+require "./UI/UI_main"
 
 -- TODO: Brush 
 -- TODO: UI
@@ -32,8 +34,8 @@ GLOBALS START
 --]]-----------------------------------------
 
 -- Different Drawing modes
-mode_RANDOMWALK = true
-mode_DRAW = false
+mode_RANDOMWALK = false
+mode_DRAW = true
 mode_ORBIT = false
 
 -- Random walk params
@@ -61,16 +63,19 @@ DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
 CANVAS_IMAGE = lg.newCanvas(SIZE_OUT.x, SIZE_OUT.y)
 CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 
+UI_DATA = li.newImageData(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, "rgba8")
+UI_IMAGE = lg.newImage(UI_DATA)
+
 -- Export params
 -- Save location in %appdata%/Roaming/LOVE/
 OUTDIR = "output/"
 OUTFILE = "outfile.png"
 
---[[-----------------------------------------
-
-LOVE FUNCTIONS
-
---]]-----------------------------------------
+-------------------------------------------
+-- 
+-- LOVE FUNCTIONS
+-- 
+-------------------------------------------
 
 function love.conf(t)
     t.console = true
@@ -78,6 +83,8 @@ end
 
 function love.load()
 
+    lg.setBackgroundColor(.2, .2, .2, 1)
+    UI_init()
     windowManager()
 
     -- Initialize the image to 0-vectors (or 0.5-vectors since they need to encode -1...1 data)
@@ -104,6 +111,17 @@ function love.update()
     -- Return mouse position
     mousePos = mouseHandler()
 
+    --[[
+    -- Update UI
+    local function clearImgData(x, y, r, g, b, a)
+        return 0, 0, 0, 0
+    end
+    UI_DATA:mapPixel(clearImgData)
+
+    for _, frame in pairs(UI) do
+        frame:generateImg(UI_DATA)
+    end]]
+
     -- Random Walker mode
     if mode_RANDOMWALK then
         for i = 0, #WALKERS do
@@ -126,30 +144,31 @@ function love.update()
     end
 end
 
+
+-- Main draw function
 function love.draw()
     
     lg.setCanvas(CANVAS_UI)
     lg.clear(0,0,0,0)
     lg.setCanvas()
 
-    -- Random Walker mode
-    --[[if mode_RANDOMWALK then
-        for i = 0, #WALKERS do
-            if WALKERS[i] ~= nil then
-                
-            end
-        end]]
-
     -- Drawing mode
     if mode_DRAW then
         drawing_brush:drawOutline(mousePos)
     end
 
+    for _, frame in pairs(UI) do
+        frame:drawDebug()
+        frame:draw()
+    end
+
     lg.setColor(1, 1, 1)
     DISPLAY_IMAGE:replacePixels(IMGDATA_MAIN)
     lg.draw(DISPLAY_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
-    --lg.draw(CANVAS_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
     lg.draw(CANVAS_UI)
+
+    UI_IMAGE:replacePixels(UI_DATA)
+    lg.draw(UI_IMAGE)
 
 
     vec1 = vec(1, .5)
@@ -161,7 +180,7 @@ function love.draw()
     lg.print(drawing_brush.pos.x .. ", " .. drawing_brush.pos.y, PADDING.x + 30, PADDING.y + 30 + 45)
     lg.print(drawing_brush.prev_pos.x .. ", " .. drawing_brush.prev_pos.y, PADDING.x + 30, PADDING.y + 30 + 60)
     lg.print("FPS: " .. lt.getFPS(), PADDING.x + 30, PADDING.y + 30 + 75)
-    lg.print((vec1 / 2).x .. ", " .. (vec1 / 2).y, PADDING.x + 30, PADDING.y + 30 + 90)
+    lg.print(UI[1].bBox[1].x .. ", " .. UI[1].bBox[1].y .. ' | ' .. UI[1].bBox[2].x .. ", " .. UI[1].bBox[2].y, PADDING.x + 30, PADDING.y + 30 + 90)
 
     --[[
     for i = 0, WIDTH do
@@ -182,11 +201,20 @@ function love.keypressed(key, scancode, isrepeat)
         filterNormalize(IMGDATA_MAIN)
     end
     if key == 'b' then
-        filterBoxBlur(IMGDATA_MAIN, 2, 5)
+        filterBoxBlur(IMGDATA_MAIN)
     end
 end
 
 function love.mousepressed(x, y, button)
+    -- Check for UI clicks. if UI click, return before taking any more inputs
+    for _, frame in pairs(UI) do
+        if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) then
+            frame:getHit(mousePos)
+            return
+        end
+    end
+
+    -- Mouse inputs happening on draw area
     if mode_DRAW then
         if button == 1 and not drawing_brush.drawing then
             drawing_brush.drawing = true
@@ -204,11 +232,11 @@ function love.mousereleased( x, y, button, istouch, presses)
     end
 end
 
---[[-----------------------------------------
-
-CUSTOM FUNCTIONS
-
---]]-----------------------------------------
+-------------------------------------------
+-- 
+-- CUSTOM FUNCTIONS
+-- 
+-------------------------------------------
 
 --- Save image
 function saveScreen()
@@ -247,7 +275,11 @@ function windowManager()
 
     -- Refresh UI layer if dimension mismatch between it and window
     if ui_x ~= size_x or ui_y ~= size_y then
+        for _, frame in pairs(UI) do
+            frame:updateRelativePos()
+        end
         CANVAS_UI = lg.newCanvas(size_x, size_y)
+        UI_DATA = li.newImageData(size_x, size_y, 'rgba8')
     end
 
     local scales = (window_size - (PADDING_min * 2)) / SIZE_OUT

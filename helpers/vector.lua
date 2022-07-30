@@ -1,3 +1,8 @@
+-----------------------------------------
+-- 
+-- Vector Arithmetic
+-- 
+-----------------------------------------
 
 function vAdd(a, b)
     return vec(a.x + b.x, a.y + b.y)
@@ -23,6 +28,8 @@ function vScalarDiv(a, scalar)
     return vec(a.x / scalar, a.y / scalar)
 end
 
+-----------------------------------------
+
 -- Rotate 2D vector
 function vRot(v, a)
     -- Convert angle to radians
@@ -34,20 +41,24 @@ function vRot(v, a)
     return vec(x, y)
 end
 
+
 -- Fast 90degree rotation, swap coords and negate other
 function vRot_90Deg(v)
     return vec(v.y, -v.x)
 end
+
 
 -- Dot product
 function vDot(a, b)
     return a.x * b.x + a.y * b.y
 end
 
+
 -- Returns length of vector
 function vLength(vector)
     return math.sqrt(vDot(vector, vector))
 end
+
 
 -- Return a vector of length 1
 function normalize(vector)
@@ -59,10 +70,12 @@ function normalize(vector)
     end
 end
 
+
 -- Copies a vector
 function vCopy(v)
     return vec(v.x, v.y)
 end
+
 
 -- Returns a wrapped around vector
 function wrapped(inVec, in_width, in_height, in_size)
@@ -91,6 +104,26 @@ function wrapped(inVec, in_width, in_height, in_size)
         return vec(outX, outY)
     end
 end
+
+
+function isHitRect(inVec, bBox0, bBox1)
+    if (inVec.x > bBox0.x and inVec.x < bBox1.x) and (inVec.y > bBox0.y and inVec.y < bBox1.y) then
+        return true
+    else
+        return false
+    end
+end
+
+
+function isHitCirc(inVec, pos, r)
+    local distance = vLength(inVec - pos)
+    if distance < r then
+        return true
+    else 
+        return false
+    end
+end
+
 
 -- Convert vector from window to canvas space
 -- Meaning the location is between 0 and canvas size, while the window itself has a padding around the canvas

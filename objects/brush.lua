@@ -23,7 +23,6 @@ Brush = {
 function Brush:new(o, inPos, inSize)
     local o = o or {}
     local mt = {__index = self}
-
     setmetatable(o, mt)
 
     -- Instance parameters
@@ -72,6 +71,8 @@ end
 ---@param mPos table
 function Brush:drawOutline(mPos)
     lg.setCanvas(CANVAS_UI)
+    lg.setLineWidth(1.5)
+    lg.setLineStyle('smooth')
 
     -- Add a circle if wraparound is used
     if self.wrap then
@@ -86,8 +87,8 @@ function Brush:drawOutline(mPos)
     lg.circle("line", self.pos.x, self.pos.y, self.size, 64)
 
     -- Lazy mouse radius and line to mouse
+    lg.setColor(.15, .15, .75)
     if self.mode == "lazy" then 
-        lg.setColor(.15, .15, .75)
         lg.circle("line", self.pos.x, self.pos.y, BRUSH_LAZY_RADIUS, 64)
         lg.line(self.pos.x, self.pos.y, mPos.x, mPos.y)
     end
