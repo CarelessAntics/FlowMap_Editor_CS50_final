@@ -19,7 +19,7 @@ function UI_init()
 
     btn_modedraw = Button:new(nil, "filter_normalize2", vec(button_size), function() mode_DRAW = true mode_RANDOMWALK = false end, "assets/icons/i_normalize.png")
     btn_modewalker = Button:new(nil, "filter_blur2", vec(button_size), function() mode_DRAW = false mode_RANDOMWALK = true end, "assets/icons/default.png")
-    textbox_test = TextBox:new(nil, "text_test", vec(4, 2))
+    textbox_test = TextBox:new(nil, "text_test", 'number', vec(4, 2))
 
     drawing_frame:addElement(btn_modewalker, 'bottom')
     drawing_frame:addElement(btn_modedraw, 'bottom')

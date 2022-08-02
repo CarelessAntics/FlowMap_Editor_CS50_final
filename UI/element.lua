@@ -1,4 +1,6 @@
 
+
+-- Base UI element
 Element = {  pos = vec(0), -- Position will be top-left corner
             size = vec(1),
             id = nil,
@@ -15,6 +17,12 @@ function Element:new(o)
 
     return o
 end
+
+-----------------------------------------
+-- 
+-- Button object
+--
+-----------------------------------------
 
 button_params = {action = nil, graphics = nil}
 Button = Element:new(button_params)
@@ -37,6 +45,12 @@ function Button:new(o, inID, inSize, actionFunc, inIcon)
 end
 
 
+-----------------------------------------
+-- 
+-- Dropdown object
+--
+-----------------------------------------
+
 dropdown_params = {content = nil, graphics = nil}
 Dropdown = Element:new(dropdown_params)
 
@@ -57,17 +71,23 @@ function Dropdown:new(o, inID, inSize, inIcon)
     return o
 end
 
+
+-- Insert the frame which the dropdown button will open
 function Dropdown:setContent(inContent)
     self.content = inContent
     self.content.state = false
 end
 
+
+-- Open and close child frame
 function Dropdown:toggleContent()
     self:setContentLocation()
     self.state = not self.state
     self.content.state = not self.content.state
 end
 
+
+-- Move content frame relative to current location
 function Dropdown:setContentLocation()
     if self.parent == nil then
         return
@@ -79,10 +99,17 @@ function Dropdown:setContentLocation()
     end
 end
 
-textbox_params = {text = ""}
+-----------------------------------------
+-- 
+-- TextBox object
+--
+-----------------------------------------
+
+textbox_params = {text = "", label = "", valuetype = ""}
 TextBox = Element:new(textbox_params)
 
-function TextBox:new(o, inID, inSize)
+-- Initialize textbox instance
+function TextBox:new(o, inID, inValueType, inSize, inLabel)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
@@ -95,13 +122,36 @@ function TextBox:new(o, inID, inSize)
     o.type = 'textbox'
     o.state = false -- writing or not
     o.text = ""
+    o.label = inLabel or "default"
+    o.valuetype = inValueType or "any" -- 'number', 'letter' or 'any'
     return o
 end
 
 
-function TextBox:backSpace()
-    if #self.text.len > 0 then
+-- Backspace functionality
+function TextBox:backspace()
+    if string.len(self.text) > 0 then
         self.text = self.text:sub(1, -2)
+    end
+end
+
+
+-- Returns the contained text as number
+function TextBox:getValueNumber()
+    if string.len(self.text) > 0 then
+        return tonumber(self.text)
+    end
+end
+
+
+-- Validate text input to match valuetype
+function TextBox:validate(t)
+    if self.valuetype == 'number' then
+        return string.match(t, "%d+") ~= nil
+    elseif self.valuetype == 'letter' then
+        return string.match(t, "%a+") ~= nil
+    else
+        return true
     end
 end
 

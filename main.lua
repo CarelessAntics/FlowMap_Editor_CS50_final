@@ -204,6 +204,9 @@ function love.keypressed(key, scancode, isrepeat)
     if key == 'b' then
         filterBoxBlur(IMGDATA_MAIN)
     end
+    if key == 'backspace' and TEXTBOX_SELECTED ~= nil then
+        TEXTBOX_SELECTED:backspace()
+    end
 end
 
 function love.mousepressed(x, y, button)
@@ -240,7 +243,9 @@ end
 
 function love.textinput(t)
     if TEXTBOX_SELECTED ~= nil then
-        TEXTBOX_SELECTED.text = TEXTBOX_SELECTED.text .. t
+        if TEXTBOX_SELECTED:validate(t) then
+            TEXTBOX_SELECTED.text = TEXTBOX_SELECTED.text .. t
+        end
     end
 end
 
