@@ -29,7 +29,7 @@ end
 -- inSeparation: more = larger blur radius
 function filterBoxBlur(inImgData)
 
-    local inSamples = 4
+    local inSamples = 3
     local inSeparation = 8
 
     -- Per pixel function

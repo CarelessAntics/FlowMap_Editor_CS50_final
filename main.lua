@@ -12,7 +12,7 @@ require "./helpers/helpers"
 require "./objects/brush"
 require "./objects/walker"
 require "./imageprocessing/filters"
-require "./UI/button"
+require "./UI/element"
 require "./UI/frame"
 require "./UI/UI_main"
 
@@ -53,6 +53,7 @@ BRUSH_LAZY_RADIUS = 100
 SIZE_OUT = vec(1024)
 CANVAS_SCALE = 1
 
+-- Minimum space between draw area and window edge
 PADDING_min = vec(300, 200)
 PADDING = vCopy(PADDING_min)
 PADDING_HALF = PADDING / 2
@@ -65,6 +66,9 @@ CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 
 UI_DATA = li.newImageData(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, "rgba8")
 UI_IMAGE = lg.newImage(UI_DATA)
+
+-- TextBox params
+TEXTBOX_SELECTED = nil
 
 -- Export params
 -- Save location in %appdata%/Roaming/LOVE/
@@ -157,8 +161,8 @@ function love.draw()
         drawing_brush:drawOutline(mousePos)
     end
 
-    for _, frame in pairs(UI) do
-        frame:drawDebug()
+    for _, frame in pairs(UI.content) do
+        --frame:drawDebug()
         frame:draw()
     end
 
@@ -166,9 +170,6 @@ function love.draw()
     DISPLAY_IMAGE:replacePixels(IMGDATA_MAIN)
     lg.draw(DISPLAY_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
     lg.draw(CANVAS_UI)
-
-    UI_IMAGE:replacePixels(UI_DATA)
-    lg.draw(UI_IMAGE)
 
 
     vec1 = vec(1, .5)
@@ -180,7 +181,7 @@ function love.draw()
     lg.print(drawing_brush.pos.x .. ", " .. drawing_brush.pos.y, PADDING.x + 30, PADDING.y + 30 + 45)
     lg.print(drawing_brush.prev_pos.x .. ", " .. drawing_brush.prev_pos.y, PADDING.x + 30, PADDING.y + 30 + 60)
     lg.print("FPS: " .. lt.getFPS(), PADDING.x + 30, PADDING.y + 30 + 75)
-    lg.print(UI[1].bBox[1].x .. ", " .. UI[1].bBox[1].y .. ' | ' .. UI[1].bBox[2].x .. ", " .. UI[1].bBox[2].y, PADDING.x + 30, PADDING.y + 30 + 90)
+    lg.print(UI.content[1].bBox[1].x .. ", " .. UI.content[1].bBox[1].y .. ' | ' .. UI.content[1].bBox[2].x .. ", " .. UI.content[1].bBox[2].y, PADDING.x + 30, PADDING.y + 30 + 90)
 
     --[[
     for i = 0, WIDTH do
@@ -206,9 +207,13 @@ function love.keypressed(key, scancode, isrepeat)
 end
 
 function love.mousepressed(x, y, button)
+
+    -- Any click clears textbox selection. Will be reselected in this function if click hits
+    selectTextBox(nil)
+
     -- Check for UI clicks. if UI click, return before taking any more inputs
-    for _, frame in pairs(UI) do
-        if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) then
+    for _, frame in pairs(UI.frames) do
+        if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
             frame:getHit(mousePos)
             return
         end
@@ -229,6 +234,13 @@ function love.mousereleased( x, y, button, istouch, presses)
         if button == 1 and drawing_brush.drawing then
             drawing_brush.drawing = false
         end
+    end
+end
+
+
+function love.textinput(t)
+    if TEXTBOX_SELECTED ~= nil then
+        TEXTBOX_SELECTED.text = TEXTBOX_SELECTED.text .. t
     end
 end
 
@@ -275,8 +287,8 @@ function windowManager()
 
     -- Refresh UI layer if dimension mismatch between it and window
     if ui_x ~= size_x or ui_y ~= size_y then
-        for _, frame in pairs(UI) do
-            frame:updateRelativePos()
+        for _, frame in pairs(UI.frames) do
+            frame:updateAbsolutePos(size_x, size_y)
         end
         CANVAS_UI = lg.newCanvas(size_x, size_y)
         UI_DATA = li.newImageData(size_x, size_y, 'rgba8')

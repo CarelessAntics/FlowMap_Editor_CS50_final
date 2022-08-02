@@ -62,3 +62,19 @@ function toNegOneOne(n)
         return n * 2 + 1
     end
 end
+
+
+function selectTextBox(inTextBox)
+    if TEXTBOX_SELECTED ~= nil then
+        TEXTBOX_SELECTED.state = false
+    end
+
+    -- Reset selection with a nil input
+    if inTextBox == nil then
+        TEXTBOX_SELECTED = nil
+        return
+    end
+
+    inTextBox.state = true
+    TEXTBOX_SELECTED = inTextBox
+end
