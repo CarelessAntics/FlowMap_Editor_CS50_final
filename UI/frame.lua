@@ -9,7 +9,8 @@ Frame = {   contents = {},
             dimensions = vec(0),
             padding = 0,
             align = 'right',
-            state = true
+            state = true,
+            current_dropdown = nil
         }
 
 function Frame:new(o, inPos, padding, alignment)
@@ -48,6 +49,7 @@ function Frame:new(o, inPos, padding, alignment)
     o.dimensions = vec(math.abs(dims.x), math.abs(dims.y))
     o.align = alignment -- Where to align frame relative to window 'left', 'right', 'top', 'bottom', 'fill'
     o.state = true
+    o.current_dropdown = nil
 
     return o
 end

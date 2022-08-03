@@ -82,6 +82,12 @@ end
 -- Open and close child frame
 function Dropdown:toggleContent()
     self:setContentLocation()
+    if self.parent.current_dropdown ~= nil and self.parent.current_dropdown ~= self then
+        self.parent.current_dropdown:toggleContent()
+        self.parent.current_dropdown = self
+    elseif self.parent.current_dropdown == nil then
+        self.parent.current_dropdown = self
+    end
     self.state = not self.state
     self.content.state = not self.content.state
 end

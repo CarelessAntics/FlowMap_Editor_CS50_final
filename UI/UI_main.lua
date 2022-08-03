@@ -1,5 +1,8 @@
+-- Main UI structure
 UI = {content = {}, frames = {}}
 
+
+-- Initialize main UI
 function UI_init()
     window_w, window_h = lg.getDimensions()
 
