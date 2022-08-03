@@ -4,7 +4,8 @@ Brush = {
     prev_pos = vec(0),
     dir = vec(0, 1),
     prev_dir = vec(0, 1),
-    drawing = false,
+    active = false,
+    erasing = false,
     drawTime = 0,
     alpha = li.newImageData("assets/alphas/1.png"),
     size = inSize,
@@ -57,7 +58,7 @@ function Brush:moveToLazy(mPos)
     if mouse_dist > BRUSH_LAZY_RADIUS + self.spacing then
 
         -- Limit movement while drawing to steps defined in object to prevent gaps in stroke
-        if self.drawing then
+        if self.active then
             self.pos = self.pos + normalize(mouse_vec) * math.min(mouse_dist - BRUSH_LAZY_RADIUS, self.spacing)
         else
             self.pos = self.pos + normalize(mouse_vec) * math.min(mouse_dist - BRUSH_LAZY_RADIUS)
@@ -103,23 +104,6 @@ function Brush:draw()
         return
     end
 
-    -- Map pixel colors using computed radial gradient
-    local function pixelFunction(x, y, r, g, b, a)
-        -- Cheese in brush and color vectors as globals
-        local brush_area = 1 - (vLength({x = x - PIXEL_INPUT_VEC0.x, y = y - PIXEL_INPUT_VEC0.y}) / PIXEL_INPUT_SIZE)
-        brush_area = smoothStep(0, 1 - self.hardness, brush_area)
-
-        local new_r = PIXEL_INPUT_COL.r
-        local new_g = PIXEL_INPUT_COL.g
-        local new_b = PIXEL_INPUT_COL.b
-
-        r = lerp(r, new_r, brush_area)
-        g = lerp(g, new_g, brush_area)
-        b = lerp(b, new_b, brush_area)
-
-        return r, g, b, a
-    end
-
     local draw_size = self.size * (1 / CANVAS_SCALE)
 
     -- Set color from direction vector
@@ -147,7 +131,7 @@ end
 function Brush:drawToImgData(inVector, draw_size, col)
 
     -- Map pixel colors using image alpha
-    local function pixelFunctionAlpha(x, y, r, g, b, a)
+    local function pixelFunctionAlphaDraw(x, y, r, g, b, a)
 
         -- Convert from global xy to local alpha xy
         local alpha_x = ((x - PIXEL_INPUT_CORNER.x) / PIXEL_INPUT_DIMS.x) * PIXEL_INPUT_ALPHADIMS.x
@@ -204,9 +188,13 @@ function Brush:drawToImgData(inVector, draw_size, col)
     PIXEL_INPUT_SIZE = draw_size
 
     -- Draw color
-    PIXEL_INPUT_COL = {r = col.x, g = col.y, b = 0}
+    if self.erasing then
+        PIXEL_INPUT_COL = {r = .5, g = .5, b = 0}
+    else
+        PIXEL_INPUT_COL = {r = col.x, g = col.y, b = 0}
+    end
 
     if (brush_w > 0 and brush_h > 0) and (inVector.x > -draw_size and inVector.y > -draw_size) then
-        IMGDATA_MAIN:mapPixel(pixelFunctionAlpha, brush_loc.x, brush_loc.y, brush_w, brush_h)
+        IMGDATA_MAIN:mapPixel(pixelFunctionAlphaDraw, brush_loc.x, brush_loc.y, brush_w, brush_h)
     end
 end

@@ -141,7 +141,7 @@ function love.update()
     -- Drawing mode
     elseif mode_DRAW then
         drawing_brush:moveToLazy(mousePos)
-        if drawing_brush.drawing and (drawing_brush.pos ~= drawing_brush.prev_pos) then
+        if drawing_brush.active and (drawing_brush.pos ~= drawing_brush.prev_pos) then
             drawing_brush:draw()
         end
         --drawing_brush:moveTo(mousePos)
@@ -191,6 +191,7 @@ function love.draw()
     end]]
 end
 
+
 function love.keypressed(key, scancode, isrepeat)
     if key == 's' and not isrepeat then
         saveScreen()
@@ -209,6 +210,7 @@ function love.keypressed(key, scancode, isrepeat)
     end
 end
 
+
 function love.mousepressed(x, y, button)
 
     -- Any click clears textbox selection. Will be reselected in this function if click hits
@@ -224,18 +226,24 @@ function love.mousepressed(x, y, button)
 
     -- Mouse inputs happening on draw area
     if mode_DRAW then
-        if button == 1 and not drawing_brush.drawing then
-            drawing_brush.drawing = true
+        if button == 1 or button == 2 then
+            drawing_brush.active = true
+            if button == 2 then
+                drawing_brush.erasing = true
+            end
         end
+            
     elseif mode_RANDOMWALK then
         WALKERS[#WALKERS+1] = Walker:new(nil, vec(x, y), 50)
     end
 end
 
+
 function love.mousereleased( x, y, button, istouch, presses)
     if mode_DRAW then
-        if button == 1 and drawing_brush.drawing then
-            drawing_brush.drawing = false
+        if drawing_brush.active then
+            drawing_brush.active = false
+            drawing_brush.erasing = false
         end
     end
 end
