@@ -41,3 +41,4 @@ luac.out
 
 .vscode/launch.json
 flow_gen.code-workspace
+*.sbs
