@@ -34,6 +34,10 @@ function Brush:new(o, inPos, inSize)
 end
 
 
+--function Brush:updateProperties()
+
+
+
 -- Regular movement. Looks kind of shitty so probably won't use it ever
 function Brush:moveTo(mPos)
     if self.prev_pos ~= self.pos then
@@ -84,6 +88,7 @@ function Brush:drawOutline(mPos)
         lg.circle("line", brush_wrap1.x, brush_wrap1.y, self.size, 64)
     end
 
+    -- Actual brush circle
     lg.setColor(.7, .15, .15)
     lg.circle("line", self.pos.x, self.pos.y, self.size, 64)
 
@@ -114,10 +119,10 @@ function Brush:draw()
     self:drawToImgData(pos_convert, draw_size, col)
 
     if self.wrap then
-        -- Wraparound for the wraparound to handle cases where brush is wrapping OOB
         local pos_wrap0 = wrapped(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size)
         self:drawToImgData(pos_wrap0, draw_size, col)
 
+        -- Wraparound for the wraparound to handle cases where brush is wrapping OOB
         local pos_wrap1 = wrapped(pos_wrap0, SIZE_OUT.x, SIZE_OUT.y, draw_size)
         self:drawToImgData(pos_wrap1, draw_size, col)
     end

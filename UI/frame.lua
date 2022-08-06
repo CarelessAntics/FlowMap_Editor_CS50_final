@@ -77,7 +77,7 @@ function Frame:addElement(element, placement)
 
         -- Resize the bounding box to contain new element
         if self.dimensions.x < element.size.x + padding_total then
-            self.bBox[2].x = self.bBox[2].x + element.size.x + padding_total
+            self.bBox[2].x = self.bBox[2].x + ((element.size.x + padding_total) - self.dimensions.x)
         end
         self.bBox[2].y = self.bBox[2].y + element.size.y + padding_total
     end
@@ -113,18 +113,24 @@ end
 
 
 -- Hit detection for Frame elements
-function Frame:getHit(mPos)
+function Frame:getHit(mPos, mButton)
     for _, element in pairs(self.contents) do
         local abs = self:absolute(element.pos)
         if isHitRect(mPos, abs, abs + element.size) then
 
-            -- TODO: think of a way to make button actions better
-            if element.type == 'button' then
-                element.action(IMGDATA_MAIN)
-            elseif element.type == 'dropdown' then
-                element:toggleContent()
-            elseif element.type == 'textbox' then
-                selectTextBox(element)
+            if mButton == 1 then
+                -- TODO: think of a way to make button actions better
+                if element.type == 'button' then
+                    element.action(IMGDATA_MAIN)
+                elseif element.type == 'dropdown' then
+                    element:toggleSubFrame()
+                elseif element.type == 'textbox' then
+                    selectTextBox(element)
+                end
+            elseif mButton == 2 then
+                if element.subframe ~= nil then
+                    element:toggleSubFrame()
+                end
             end
         end
     end
@@ -136,12 +142,12 @@ function Frame:draw()
     for _, element in pairs(self.contents) do
 
         local abs = self:absolute(element.pos)
-
-        if element.type == 'dropdown' and element.state then
-            element.content:draw()
-        elseif element.type == 'textbox' then
+        local dd_tri = lg.newImage("assets/icons/dd.png")
+        
+        -- TextBox doesn't have graphics, so skip the rest of the loop
+        if element.type == 'textbox' then
             element:draw(abs)
-            goto continue -- Why is lua weird
+            goto continue
         end
 
         local icon_w, icon_h = element.graphics:getDimensions()
@@ -149,6 +155,19 @@ function Frame:draw()
 
         lg.setColor(1, 1, 1, 1)
         lg.draw(element.graphics, abs.x, abs.y, 0, scales.x, scales.y)
+
+        -- In case of a dropdown, add in a small triangle
+        if element.type == 'dropdown' then
+            icon_w, icon_h = dd_tri:getDimensions()
+            scales = element.size / vec(icon_w, icon_h)
+            lg.draw(dd_tri, abs.x, abs.y, 0, scales.x, scales.y)
+        end
+
+        -- Draw dropdown contents
+        if element.state then
+            element.subframe:draw()
+        end
+        
         
         ::continue::
     end
@@ -166,7 +185,7 @@ function Frame:drawDebug()
     lg.setLineWidth(1)
     for _, v in pairs(self.contents) do
         if v.type == 'dropdown' and v.state then
-            v.content:drawDebug()
+            v.subframe:drawDebug()
         end
         local abs = self:absolute(v.pos)
         lg.rectangle('line', abs.x, abs.y, v.size.x, v.size.y)

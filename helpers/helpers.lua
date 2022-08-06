@@ -63,7 +63,7 @@ function toNegOneOne(n)
     end
 end
 
-
+-- Update Global variable marking which textbox is currently selected
 function selectTextBox(inTextBox)
     if TEXTBOX_SELECTED ~= nil then
         TEXTBOX_SELECTED.state = false
@@ -77,4 +77,33 @@ function selectTextBox(inTextBox)
 
     inTextBox.state = true
     TEXTBOX_SELECTED = inTextBox
+end
+
+-- A table concatenation function which may or may not work as intended
+function table_concat(a, b)
+    local out = {table.unpack(a)}
+    for _, v in pairs(b) do
+        table.insert(out, v)
+    end
+    return out
+end
+
+-- Print out nested tables. Breaks into infinite loop if a table has a reference to its parent
+function deepPrint(tbl)
+    local function helper(tbl)
+        if tbl == nil then return 'nil' end
+        local str = "{ "
+        for k, v in pairs(tbl) do
+            if type(v) == 'table' then
+                local newstr = helper(v)
+                str = str .. (newstr or 'nil')
+            elseif v == nil then
+                str = str .. 'nil' .. ' '
+            else
+                str = str .. tostring(v) .. ' '
+            end
+        end
+        return str .. " }"
+    end
+    print(helper(tbl))
 end

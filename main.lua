@@ -1,12 +1,15 @@
 if arg[#arg] == "vsc_debug" then require("lldebugger").start() end
+io.stdout:setvbuf('no')
 
-lf = love.filesystem
+lfs = love.filesystem
+lf = love.font
 lg = love.graphics
 lw = love.window
 lm = love.math
 li = love.image
 lt = love.timer
 
+require "./conf"
 require "./helpers/vector"
 require "./helpers/helpers"
 require "./objects/brush"
@@ -17,8 +20,9 @@ require "./UI/frame"
 require "./UI/UI_main"
 
 -- TODO: Brush 
--- TODO: UI
---      Frames
+-- TODO: UI_main
+--      Tooltips
+--      Properties
 --      preview window
 -- TODO: Orbiters
 -- TODO: Saving image
@@ -69,6 +73,9 @@ UI_IMAGE = lg.newImage(UI_DATA)
 
 -- TextBox params
 TEXTBOX_SELECTED = nil
+FONT_SIZE_REGULAR = 18
+FONT_GLOBAL = lg.newFont("fonts/Arial.ttf", FONT_SIZE_REGULAR)
+FONT_GLOBAL:setFilter("nearest", "nearest", 1)
 
 -- Export params
 -- Save location in %appdata%/Roaming/LOVE/
@@ -81,14 +88,15 @@ OUTFILE = "outfile.png"
 -- 
 -------------------------------------------
 
-function love.conf(t)
-    t.console = true
-end
-
 function love.load()
 
     lg.setBackgroundColor(.2, .2, .2, 1)
-    UI_init()
+    lg.setFont(FONT_GLOBAL)
+
+    UI_main = UI:new(nil)
+    UI_main:init()
+    UI_main:updateFrames()
+
     windowManager()
 
     -- Initialize the image to 0-vectors (or 0.5-vectors since they need to encode -1...1 data)
@@ -110,19 +118,20 @@ end
 
 function love.update()
 
+    --UI_main:updateFrames()
     windowManager()
 
     -- Return mouse position
     mousePos = mouseHandler()
 
     --[[
-    -- Update UI
+    -- Update UI_main
     local function clearImgData(x, y, r, g, b, a)
         return 0, 0, 0, 0
     end
     UI_DATA:mapPixel(clearImgData)
 
-    for _, frame in pairs(UI) do
+    for _, frame in pairs(UI_main) do
         frame:generateImg(UI_DATA)
     end]]
 
@@ -161,27 +170,27 @@ function love.draw()
         drawing_brush:drawOutline(mousePos)
     end
 
-    for _, frame in pairs(UI.content) do
-        --frame:drawDebug()
-        frame:draw()
-    end
-
     lg.setColor(1, 1, 1)
     DISPLAY_IMAGE:replacePixels(IMGDATA_MAIN)
     lg.draw(DISPLAY_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
+
+    for _, frame in pairs(UI_main.content) do
+        frame:drawDebug()
+        frame:draw()
+    end
     lg.draw(CANVAS_UI)
 
 
     vec1 = vec(1, .5)
     vec2 = vec(.5, 2)
     mouseCanvas = toCanvasSpace(mousePos)
-    lg.print(lf.getIdentity(), PADDING.x + 30, PADDING.y + 30)
+    lg.print(lfs.getIdentity(), PADDING.x + 30, PADDING.y + 30)
     lg.print(mousePos.x .. ", " .. mousePos.y, PADDING.x + 30, PADDING.y + 30 + 15)
     lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING.x + 30, PADDING.y + 30 + 30)
     lg.print(drawing_brush.pos.x .. ", " .. drawing_brush.pos.y, PADDING.x + 30, PADDING.y + 30 + 45)
     lg.print(drawing_brush.prev_pos.x .. ", " .. drawing_brush.prev_pos.y, PADDING.x + 30, PADDING.y + 30 + 60)
     lg.print("FPS: " .. lt.getFPS(), PADDING.x + 30, PADDING.y + 30 + 75)
-    lg.print(UI.content[1].bBox[1].x .. ", " .. UI.content[1].bBox[1].y .. ' | ' .. UI.content[1].bBox[2].x .. ", " .. UI.content[1].bBox[2].y, PADDING.x + 30, PADDING.y + 30 + 90)
+    lg.print(UI_main.content[1].bBox[1].x .. ", " .. UI_main.content[1].bBox[1].y .. ' | ' .. UI_main.content[1].bBox[2].x .. ", " .. UI_main.content[1].bBox[2].y, PADDING.x + 30, PADDING.y + 30 + 90)
 
     --[[
     for i = 0, WIDTH do
@@ -215,11 +224,12 @@ function love.mousepressed(x, y, button)
 
     -- Any click clears textbox selection. Will be reselected in this function if click hits
     selectTextBox(nil)
+    UI_main:updateFrames()
 
-    -- Check for UI clicks. if UI click, return before taking any more inputs
-    for _, frame in pairs(UI.frames) do
+    -- Check for UI_main clicks. if UI_main click, return before taking any more inputs
+    for _, frame in pairs(UI_main.frames) do
         if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
-            frame:getHit(mousePos)
+            frame:getHit(mousePos, button)
             return
         end
     end
@@ -265,9 +275,9 @@ end
 
 --- Save image
 function saveScreen()
-    if lf.createDirectory(OUTDIR) then
-        if lf.getInfo(OUTDIR .. OUTFILE) ~= nil then
-            lf.newFile(OUTDIR .. OUTFILE)
+    if lfs.createDirectory(OUTDIR) then
+        if lfs.getInfo(OUTDIR .. OUTFILE) ~= nil then
+            lfs.newFile(OUTDIR .. OUTFILE)
         end
 
         -- local image_out = CANVAS_IMAGE:newImageData()
@@ -298,9 +308,9 @@ function windowManager()
     local ui_x, ui_y = CANVAS_UI:getDimensions()
     local window_size = vec(size_x, size_y)
 
-    -- Refresh UI layer if dimension mismatch between it and window
+    -- Refresh UI_main layer if dimension mismatch between it and window
     if ui_x ~= size_x or ui_y ~= size_y then
-        for _, frame in pairs(UI.frames) do
+        for _, frame in pairs(UI_main.frames) do
             frame:updateAbsolutePos(size_x, size_y)
         end
         CANVAS_UI = lg.newCanvas(size_x, size_y)

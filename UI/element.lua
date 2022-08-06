@@ -6,7 +6,9 @@ Element = {  pos = vec(0), -- Position will be top-left corner
             id = nil,
             type = 'button', -- 'button, dropdown'
             state = false,
-            parent = nil
+            parent = nil,
+            tooltip = "",
+            subframe = nil
         }
 
 
@@ -16,6 +18,75 @@ function Element:new(o)
     setmetatable(o, mt)
 
     return o
+end
+
+
+-- Toggles the subframe on and off. Logic taken from dropdowns and put into the base Element Class
+function Element:toggleSubFrame()
+    -- Update the location with every toggle
+    self:setSubFrameLocation()
+
+    -- If the parent frame already has a different subframe open, toggle that off and set this one on
+    if self.parent.current_dropdown ~= nil and self.parent.current_dropdown ~= self then
+        self.parent.current_dropdown:toggleSubFrame()
+        self.parent.current_dropdown = self
+
+    -- If no subframes open
+    elseif self.parent.current_dropdown == nil then
+        self.parent.current_dropdown = self
+
+    -- If this is the current open subframe, close it
+    elseif self.parent.current_dropdown == self then
+        self.parent.current_dropdown = nil
+    end
+
+    -- Toggle states
+    self.state = not self.state
+    self.subframe.state = not self.subframe.state
+end
+
+
+-- Move content frame relative to current location
+function Element:setSubFrameLocation()
+    if self.parent == nil then
+        return
+    end
+
+    local window_w, window_h = lg.getDimensions()
+    if self.parent.align == 'right' then
+        self.subframe:updateAbsolutePos(self.parent.bBox[1].x - self.subframe.dimensions.x, window_h)
+    end
+end
+
+
+-- Create properties-frame for Element
+-- Takes in a variable amount of tables with the following template:
+-- {label = text, value = any, size = vector}
+function Element:setProperties( ... )
+    -- Create a new subframe and initialize its state to false
+    self.subframe = Frame:new(nil, vec(0), 10, 'right')
+    self.subframe.state = false
+
+    local arg = {...}
+
+    for i, property in pairs(arg) do
+        local newProperty
+        -- o, inID, inValueType, inSize, inLabel, inFont
+        if type(property.value) == 'number' then
+            newProperty = TextBox:new(nil, property.label, 'number', property.size, property.label, nil)
+            newProperty.text = tostring(property.value)
+
+        elseif type(property.value) == 'string' then
+            newProperty = TextBox:new(nil, property.label, 'string', property.size, property.label, nil)
+            newProperty.text = tostring(property.value)
+
+        else
+            newProperty = TextBox:new(nil, property.label, 'number', property.size, property.label, nil)
+            newProperty.text = "Something Went Wrong"
+        end
+
+        self.subframe:addElement(newProperty, 'bottom')
+    end
 end
 
 -----------------------------------------
@@ -51,9 +122,11 @@ end
 --
 -----------------------------------------
 
-dropdown_params = {content = nil, graphics = nil}
+dropdown_params = {graphics = nil}
 Dropdown = Element:new(dropdown_params)
 
+
+-- This could be deleted and merged to base Element at some point
 function Dropdown:new(o, inID, inSize, inIcon)
     o = o or {}
     local mt = {__index = self}
@@ -74,35 +147,8 @@ end
 
 -- Insert the frame which the dropdown button will open
 function Dropdown:setContent(inContent)
-    self.content = inContent
-    self.content.state = false
-end
-
-
--- Open and close child frame
-function Dropdown:toggleContent()
-    self:setContentLocation()
-    if self.parent.current_dropdown ~= nil and self.parent.current_dropdown ~= self then
-        self.parent.current_dropdown:toggleContent()
-        self.parent.current_dropdown = self
-    elseif self.parent.current_dropdown == nil then
-        self.parent.current_dropdown = self
-    end
-    self.state = not self.state
-    self.content.state = not self.content.state
-end
-
-
--- Move content frame relative to current location
-function Dropdown:setContentLocation()
-    if self.parent == nil then
-        return
-    end
-
-    local window_w, window_h = lg.getDimensions()
-    if self.parent.align == 'right' then
-        self.content:updateAbsolutePos(self.parent.bBox[1].x - self.content.dimensions.x, window_h)
-    end
+    self.subframe = inContent
+    self.subframe.state = false
 end
 
 -----------------------------------------
@@ -111,24 +157,37 @@ end
 --
 -----------------------------------------
 
-textbox_params = {text = "", label = "", valuetype = ""}
+textbox_params = {text = "", label = "", valuetype = "", padding = 2.5, font = nil, box_size = vec(0)}
 TextBox = Element:new(textbox_params)
 
 -- Initialize textbox instance
-function TextBox:new(o, inID, inValueType, inSize, inLabel)
+function TextBox:new(o, inID, inValueType, inSize, inLabel, inFont)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
 
-    local char_dims = vec(10)
+    o.font = inFont or FONT_GLOBAL
 
+    local char_dims = vec(o.font:getHeight() / 1.5, o.font:getHeight() + self.padding * 2)
+
+    -- Set the element size according to label or content, whichever is bigger
+    o.label = inLabel
+    if o.label ~= nil then
+        local width_label = o.font:getWidth(o.label) + self.padding * 2
+        local element_size = (inSize + vec(0, 1)) * char_dims
+        local element_width = math.max(element_size.x, o.font:getWidth(o.label) + self.padding * 2)
+        o.size = vec(element_width, element_size.y)
+    else
+        o.size = inSize * char_dims
+    end
+
+    o.box_size = inSize * char_dims -- Input box size, independent of element itself
     o.pos = vec(SIZE_OUT)
-    o.size = inSize * char_dims
     o.id = inID
     o.type = 'textbox'
     o.state = false -- writing or not
     o.text = ""
-    o.label = inLabel or "default"
+    
     o.valuetype = inValueType or "any" -- 'number', 'letter' or 'any'
     return o
 end
@@ -166,16 +225,27 @@ function TextBox:draw(absPos)
     local temp = lg.newCanvas(self.size.x, self.size.y)
     lg.setCanvas(temp)
 
+    local box_height = self.size.y
+    local padding = 2.5
     lg.setColor(1, 1, 1, 1)
-    lg.rectangle('fill', 0,0, self.size.x, self.size.y)
 
-    if self.state then
-        lg.setColor(1, 0, 1, 1)
-        lg.rectangle('line', 0,0, self.size.x, self.size.y)
+    if self.label ~= nil then
+        box_height = self.size.y / 2
+        lg.print(self.label, self.padding, self.padding)
     end
 
+    -- Draw main box
+    lg.rectangle('fill', 0, box_height, self.box_size.x, box_height)
+
+    -- Draw highlight
+    if self.state then
+        lg.setColor(1, 0, 1, 1)
+        lg.rectangle('line', 0, box_height, self.box_size.x, box_height)
+    end
+
+    -- Print contents
     lg.setColor(0, 0, 0, 1)
-    lg.print(self.text, 2.5, 2.5)
+    lg.print(self.text, self.padding, self.padding + box_height)
 
     lg.setColor(1, 1, 1, 1)
     lg.setCanvas()
@@ -190,3 +260,4 @@ function Slider:new(o, inPos, inID, inSize, actionFunc, inIcon)
     -- TODO: Slider object inheriting from button
     return
 end
+
