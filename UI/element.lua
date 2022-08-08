@@ -8,7 +8,8 @@ Element = {  pos = vec(0), -- Position will be top-left corner
             state = false,
             parent = nil,
             tooltip = "",
-            subframe = nil
+            subframe = nil,
+            sprite = nil
         }
 
 
@@ -40,6 +41,11 @@ function Element:toggleSubFrame()
         self.parent.current_dropdown = nil
     end
 
+    -- Turn off subframes any children might have open
+    if self.subframe.current_dropdown ~= nil then
+        self.subframe.current_dropdown:toggleSubFrame()
+    end
+
     -- Toggle states
     self.state = not self.state
     self.subframe.state = not self.subframe.state
@@ -61,10 +67,10 @@ end
 
 -- Create properties-frame for Element
 -- Takes in a variable amount of tables with the following template:
--- {label = text, value = any, size = vector}
-function Element:setProperties( ... )
+-- {label = text, id = text, value = any, size = vector}
+function Element:setProperties(frameId, ... )
     -- Create a new subframe and initialize its state to false
-    self.subframe = Frame:new(nil, vec(0), 10, 'right')
+    self.subframe = Frame:new(nil, frameId, vec(0), 10, 'right')
     self.subframe.state = false
 
     local arg = {...}
@@ -73,15 +79,15 @@ function Element:setProperties( ... )
         local newProperty
         -- o, inID, inValueType, inSize, inLabel, inFont
         if type(property.value) == 'number' then
-            newProperty = TextBox:new(nil, property.label, 'number', property.size, property.label, nil)
+            newProperty = TextBox:new(nil, property.id, 'number', property.size, property.label, nil)
             newProperty.text = tostring(property.value)
 
         elseif type(property.value) == 'string' then
-            newProperty = TextBox:new(nil, property.label, 'string', property.size, property.label, nil)
+            newProperty = TextBox:new(nil, property.id, 'string', property.size, property.label, nil)
             newProperty.text = tostring(property.value)
 
         else
-            newProperty = TextBox:new(nil, property.label, 'number', property.size, property.label, nil)
+            newProperty = TextBox:new(nil, property.id, 'number', property.size, property.label, nil)
             newProperty.text = "Something Went Wrong"
         end
 
@@ -99,10 +105,12 @@ button_params = {action = nil, graphics = nil}
 Button = Element:new(button_params)
 
 
-function Button:new(o, inID, inSize, actionFunc, inIcon)
+function Button:new(o, inID, inSize, actionFunc, inSprite)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
+
+    inSprite = inSprite or vec(0, 7)
 
     -- Initialize instance params
     o.pos = vec(0)
@@ -110,7 +118,8 @@ function Button:new(o, inID, inSize, actionFunc, inIcon)
     o.id = inID
     o.type = 'button'
     o.state = false
-    o.graphics = lg.newImage(inIcon or "assets/icons/default.png")
+    --o.graphics = vec(0)--lg.newImage(inIcon or "assets/icons/default.png")
+    o.sprite = lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512)
     o.action = actionFunc -- function: what happens when button is activated
     return o
 end
@@ -127,18 +136,20 @@ Dropdown = Element:new(dropdown_params)
 
 
 -- This could be deleted and merged to base Element at some point
-function Dropdown:new(o, inID, inSize, inIcon)
+function Dropdown:new(o, inID, inSize, inSprite)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
 
+    inSprite = inSprite or vec(0, 7)
     -- Initialize instance params
     o.pos = vec(0)
     o.size = inSize
     o.id = inID
     o.type = 'dropdown'
     o.state = false
-    o.graphics = lg.newImage(inIcon or "assets/icons/default.png")
+    --o.graphics = lg.newImage(inIcon or "assets/icons/default.png")
+    o.sprite = lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512)
     o.content = nil -- Contained frame
     o.parent = nil
     return o
@@ -196,7 +207,8 @@ end
 -- Backspace functionality
 function TextBox:backspace()
     if string.len(self.text) > 0 then
-        self.text = self.text:sub(1, -2)
+        self.text = self.text:sub(1, -2) or ''
+        self:draw()
     end
 end
 
@@ -204,7 +216,11 @@ end
 -- Returns the contained text as number
 function TextBox:getValueNumber()
     if string.len(self.text) > 0 then
-        return tonumber(self.text)
+        if self.text == '.' or self.text == '' then
+            return 0.
+        else
+            return tonumber(self.text) + 0.
+        end
     end
 end
 
@@ -212,7 +228,11 @@ end
 -- Validate text input to match valuetype
 function TextBox:validate(t)
     if self.valuetype == 'number' then
-        return string.match(t, "%d+") ~= nil
+        if string.len(self.text) == 0 then
+            return string.match(t, "%d?[.]?") ~= nil
+        else
+            return string.match(t, "%d+") ~= nil
+        end
     elseif self.valuetype == 'letter' then
         return string.match(t, "%a+") ~= nil
     else
@@ -221,9 +241,10 @@ function TextBox:validate(t)
 end
 
 
-function TextBox:draw(absPos)
-    local temp = lg.newCanvas(self.size.x, self.size.y)
-    lg.setCanvas(temp)
+function TextBox:draw()
+    --local temp = lg.newCanvas(self.size.x, self.size.y)
+    local absPos = self.parent:absolute(self.pos)
+    lg.setCanvas(CANVAS_UI_STATIC)
 
     local box_height = self.size.y
     local padding = 2.5
@@ -231,26 +252,25 @@ function TextBox:draw(absPos)
 
     if self.label ~= nil then
         box_height = self.size.y / 2
-        lg.print(self.label, self.padding, self.padding)
+        lg.print(self.label, absPos.x + self.padding, absPos.y + self.padding)
     end
 
     -- Draw main box
-    lg.rectangle('fill', 0, box_height, self.box_size.x, box_height)
+    lg.rectangle('fill', absPos.x, absPos.y + box_height, self.box_size.x, box_height)
 
     -- Draw highlight
     if self.state then
         lg.setColor(1, 0, 1, 1)
-        lg.rectangle('line', 0, box_height, self.box_size.x, box_height)
+        lg.rectangle('line', absPos.x, absPos.y + box_height, self.box_size.x, box_height)
     end
 
     -- Print contents
     lg.setColor(0, 0, 0, 1)
-    lg.print(self.text, self.padding, self.padding + box_height)
+    lg.print(self.text, absPos.x + self.padding, absPos.y + self.padding + box_height)
 
     lg.setColor(1, 1, 1, 1)
     lg.setCanvas()
-
-    lg.draw(temp, absPos.x, absPos.y)
+    --lg.draw(temp, absPos.x, absPos.y)
 end
 
 

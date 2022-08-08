@@ -8,7 +8,8 @@ Brush = {
     erasing = false,
     drawTime = 0,
     alpha = li.newImageData("assets/alphas/1.png"),
-    size = inSize,
+    size = nil,
+    lazy_size = nil,
     hardness = 0,
     spacing = 5, -- Units = pixels,
     wrap = true, -- Brush wraparound
@@ -28,13 +29,35 @@ function Brush:new(o, inPos, inSize)
 
     -- Instance parameters
     o.pos = inPos
-    o.size = inSize
+    o.size = 50
+    o.lazy_size = 100
 
     return o
 end
 
+-- Get values from properties
+-- Redo to get values properly from the actual objects instead of checking selected textbox
+function Brush:updateFromProperties()
+    local properties_id = 'f_brush_properties'
+    local property = TEXTBOX_SELECTED
+    local value = property:getValueNumber()
 
---function Brush:updateProperties()
+    local range_size = {min = 5, max = 500}
+    local range_hardness = {min = 0., max = .999}
+    local range_lazy = {min = 5, max = 600}
+    
+    if property.text ~= nil then
+        if property.id == "p_brush_rad" then
+            self.size = clamp(range_size.min, range_size.max, value)
+        elseif  property.id == "p_brush_hard" then
+            self.hardness = clamp(range_hardness.min, range_hardness.max, value)
+        elseif  property.id == "p_brush_lazy" then
+            self.lazy_size = clamp(range_lazy.min, range_lazy.max, value)
+        elseif  property.id == "p_brush_spacing" then
+            self.spacing = value
+        end
+    end
+end
 
 
 
@@ -59,13 +82,13 @@ function Brush:moveToLazy(mPos)
     self.prev_pos = vCopy(self.pos)
     self.prev_dir = vCopy(self.dir)
 
-    if mouse_dist > BRUSH_LAZY_RADIUS + self.spacing then
+    if mouse_dist > self.lazy_size + self.spacing then
 
         -- Limit movement while drawing to steps defined in object to prevent gaps in stroke
         if self.active then
-            self.pos = self.pos + normalize(mouse_vec) * math.min(mouse_dist - BRUSH_LAZY_RADIUS, self.spacing)
+            self.pos = self.pos + normalize(mouse_vec) * math.min(mouse_dist - self.lazy_size, self.spacing)
         else
-            self.pos = self.pos + normalize(mouse_vec) * math.min(mouse_dist - BRUSH_LAZY_RADIUS)
+            self.pos = self.pos + normalize(mouse_vec) * math.min(mouse_dist - self.lazy_size)
         end
         self.dir = normalize(mouse_vec)
     end
@@ -95,7 +118,7 @@ function Brush:drawOutline(mPos)
     -- Lazy mouse radius and line to mouse
     lg.setColor(.15, .15, .75)
     if self.mode == "lazy" then 
-        lg.circle("line", self.pos.x, self.pos.y, BRUSH_LAZY_RADIUS, 64)
+        lg.circle("line", self.pos.x, self.pos.y, self.lazy_size, 64)
         lg.line(self.pos.x, self.pos.y, mPos.x, mPos.y)
     end
 

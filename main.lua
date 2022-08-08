@@ -47,8 +47,8 @@ WALKERS = {}
 WALKERS_RESPAWN = true
 
 -- Drawing mode params
-BRUSH_SIZE = 60
-BRUSH_LAZY_RADIUS = 100
+-- BRUSH_SIZE = 60
+-- BRUSH_LAZY_RADIUS = 100
 -- CURRENTLY_DRAWING = false
 
 -- Canvas and window params
@@ -67,6 +67,10 @@ IMGDATA_MAIN = li.newImageData(SIZE_OUT.x, SIZE_OUT.y, "rgba16")
 DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
 CANVAS_IMAGE = lg.newCanvas(SIZE_OUT.x, SIZE_OUT.y)
 CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
+CANVAS_UI_STATIC = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
+
+ICON_ATLAS = lg.newImage("assets/icons/icon_atlas.png")
+ICON_BATCH = lg.newSpriteBatch(ICON_ATLAS, 50, 'static')
 
 UI_DATA = li.newImageData(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, "rgba8")
 UI_IMAGE = lg.newImage(UI_DATA)
@@ -96,6 +100,7 @@ function love.load()
     UI_main = UI:new(nil)
     UI_main:init()
     UI_main:updateFrames()
+    UI_main:drawFrames()
 
     windowManager()
 
@@ -120,6 +125,7 @@ function love.update()
 
     --UI_main:updateFrames()
     windowManager()
+
 
     -- Return mouse position
     mousePos = mouseHandler()
@@ -174,15 +180,16 @@ function love.draw()
     DISPLAY_IMAGE:replacePixels(IMGDATA_MAIN)
     lg.draw(DISPLAY_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
 
-    for _, frame in pairs(UI_main.content) do
-        frame:drawDebug()
+    --[[
+    for _, frame in pairs(UI_main.frames) do
+        --frame:drawDebug()
         frame:draw()
-    end
+    end]]
     lg.draw(CANVAS_UI)
+    lg.draw(CANVAS_UI_STATIC)
+    lg.draw(ICON_BATCH)
 
 
-    vec1 = vec(1, .5)
-    vec2 = vec(.5, 2)
     mouseCanvas = toCanvasSpace(mousePos)
     lg.print(lfs.getIdentity(), PADDING.x + 30, PADDING.y + 30)
     lg.print(mousePos.x .. ", " .. mousePos.y, PADDING.x + 30, PADDING.y + 30 + 15)
@@ -224,12 +231,13 @@ function love.mousepressed(x, y, button)
 
     -- Any click clears textbox selection. Will be reselected in this function if click hits
     selectTextBox(nil)
-    UI_main:updateFrames()
 
     -- Check for UI_main clicks. if UI_main click, return before taking any more inputs
     for _, frame in pairs(UI_main.frames) do
         if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
             frame:getHit(mousePos, button)
+            UI_main:updateFrames()
+            UI_main:drawFrames()
             return
         end
     end
@@ -263,6 +271,11 @@ function love.textinput(t)
     if TEXTBOX_SELECTED ~= nil then
         if TEXTBOX_SELECTED:validate(t) then
             TEXTBOX_SELECTED.text = TEXTBOX_SELECTED.text .. t
+            TEXTBOX_SELECTED:draw()
+        end
+
+        if TEXTBOX_SELECTED.parent.id == 'f_brush_properties' then
+            drawing_brush:updateFromProperties()
         end
     end
 end
@@ -312,8 +325,11 @@ function windowManager()
     if ui_x ~= size_x or ui_y ~= size_y then
         for _, frame in pairs(UI_main.frames) do
             frame:updateAbsolutePos(size_x, size_y)
+            ICON_BATCH:clear()
+            frame:draw()
         end
         CANVAS_UI = lg.newCanvas(size_x, size_y)
+        CANVAS_UI_STATIC = lg.newCanvas(size_x, size_y)
         UI_DATA = li.newImageData(size_x, size_y, 'rgba8')
     end
 

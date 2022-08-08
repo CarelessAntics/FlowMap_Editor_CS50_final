@@ -10,10 +10,11 @@ Frame = {   contents = {},
             padding = 0,
             align = 'right',
             state = true,
-            current_dropdown = nil
+            current_dropdown = nil,
+            id = ''
         }
 
-function Frame:new(o, inPos, padding, alignment)
+function Frame:new(o, id, inPos, padding, alignment)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
@@ -50,6 +51,7 @@ function Frame:new(o, inPos, padding, alignment)
     o.align = alignment -- Where to align frame relative to window 'left', 'right', 'top', 'bottom', 'fill'
     o.state = true
     o.current_dropdown = nil
+    o.id = id or 'none'
 
     return o
 end
@@ -142,25 +144,23 @@ function Frame:draw()
     for _, element in pairs(self.contents) do
 
         local abs = self:absolute(element.pos)
-        local dd_tri = lg.newImage("assets/icons/dd.png")
+        local icon_size = 64
+        local dd_tri = lg.newQuad(7 * icon_size, 7 * icon_size, icon_size, icon_size, 512, 512)
         
         -- TextBox doesn't have graphics, so skip the rest of the loop
         if element.type == 'textbox' then
-            element:draw(abs)
+            element:draw()
             goto continue
         end
 
-        local icon_w, icon_h = element.graphics:getDimensions()
-        local scales = element.size / vec(icon_w, icon_h)
+        local scales = element.size / vec(icon_size)
 
         lg.setColor(1, 1, 1, 1)
-        lg.draw(element.graphics, abs.x, abs.y, 0, scales.x, scales.y)
+        ICON_BATCH:add(element.sprite, abs.x, abs.y, 0, scales.x, scales.y)
 
         -- In case of a dropdown, add in a small triangle
         if element.type == 'dropdown' then
-            icon_w, icon_h = dd_tri:getDimensions()
-            scales = element.size / vec(icon_w, icon_h)
-            lg.draw(dd_tri, abs.x, abs.y, 0, scales.x, scales.y)
+            ICON_BATCH:add(dd_tri, abs.x, abs.y, 0, scales.x, scales.y)
         end
 
         -- Draw dropdown contents
