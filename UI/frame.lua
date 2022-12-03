@@ -115,7 +115,7 @@ end
 
 
 -- Hit detection for Frame elements
-function Frame:getHit(mPos, mButton)
+function Frame:getHit(mPos, mButton, UI_ref)
     for _, element in pairs(self.contents) do
         local abs = self:absolute(element.pos)
         if isHitRect(mPos, abs, abs + element.size) then
@@ -123,12 +123,15 @@ function Frame:getHit(mPos, mButton)
             if mButton == 1 then
                 -- TODO: think of a way to make button actions better
                 if element.type == 'button' then
-                    element.action(IMGDATA_MAIN)
+                    element.action(IMGDATA_MAIN, UI_ref)
+
                 elseif element.type == 'dropdown' then
                     element:toggleSubFrame()
+
                 elseif element.type == 'textbox' then
                     selectTextBox(element)
                 end
+
             elseif mButton == 2 then
                 if element.subframe ~= nil then
                     element:toggleSubFrame()

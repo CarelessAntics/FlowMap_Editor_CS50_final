@@ -1,6 +1,6 @@
 
 -- Main UI structure
-UI = {content = {}, frames = {}}
+UI = {content = {}, frames = {}, properties = {}}
 
 
 function UI:new(o)
@@ -10,6 +10,7 @@ function UI:new(o)
 
     o.content = {}
     o.frames = {}
+    o.properties = {}
 
     return o
 end
@@ -29,7 +30,7 @@ function UI:init()
 
     btn_normalize = Button:new(nil, "filter_normalize", vec(button_size), filterNormalize, vec(2, 0))
     btn_blur = Button:new(nil, "filter_blur", vec(button_size), filterBoxBlur, vec(4, 0))
-    btn_blur:setProperties('f_blur_properties',
+    btn_blur:setProperties('f_blur_properties', self,
                             {label = "Blur Radius", id = "p_blur_rad", value = 10, size = vec(4, 1)},
                             {label = "Blur Samples", id = "p_blur_samples", value = 4, size = vec(4, 1)})
 
@@ -37,7 +38,7 @@ function UI:init()
     filters_frame:addElement(btn_blur, 'bottom')
 
     btn_modedraw = Button:new(nil, "filter_normalize2", vec(button_size), function() mode_DRAW = true mode_RANDOMWALK = false end)
-    btn_modedraw:setProperties('f_brush_properties', 
+    btn_modedraw:setProperties('f_brush_properties', self, 
                                 {label = "Brush Radius", id = "p_brush_rad", value = 50, size = vec(4, 1)},
                                 {label = "Brush Hardness", id = "p_brush_hard", value = .5, size = vec(4, 1)},
                                 {label = "Lazy Radius", id = "p_brush_lazy", value = 100, size = vec(4, 1)},

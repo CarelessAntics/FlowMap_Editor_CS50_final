@@ -68,7 +68,7 @@ end
 -- Create properties-frame for Element
 -- Takes in a variable amount of tables with the following template:
 -- {label = text, id = text, value = any, size = vector}
-function Element:setProperties(frameId, ... )
+function Element:setProperties(frameId, UI_ref, ... )
     -- Create a new subframe and initialize its state to false
     self.subframe = Frame:new(nil, frameId, vec(0), 10, 'right')
     self.subframe.state = false
@@ -93,6 +93,7 @@ function Element:setProperties(frameId, ... )
 
         self.subframe:addElement(newProperty, 'bottom')
     end
+    UI_ref.properties[frameId] = self.subframe
 end
 
 -----------------------------------------
@@ -221,6 +222,8 @@ function TextBox:getValueNumber()
         else
             return tonumber(self.text) + 0.
         end
+    else
+        return 0.
     end
 end
 
@@ -228,10 +231,11 @@ end
 -- Validate text input to match valuetype
 function TextBox:validate(t)
     if self.valuetype == 'number' then
-        if string.len(self.text) == 0 then
-            return string.match(t, "%d?[.]?") ~= nil
-        else
+        -- Check for decimal points in whole text. Prevent adding more if one exists
+        if string.match(self.text, "[.]+") then
             return string.match(t, "%d+") ~= nil
+        else
+            return string.match(t, "%d?[.]?") ~= nil
         end
     elseif self.valuetype == 'letter' then
         return string.match(t, "%a+") ~= nil

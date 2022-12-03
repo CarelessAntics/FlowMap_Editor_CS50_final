@@ -155,6 +155,7 @@ function love.update()
 
     -- Drawing mode
     elseif mode_DRAW then
+        drawing_brush:updateFromProperties(UI_main)
         drawing_brush:moveToLazy(mousePos)
         if drawing_brush.active and (drawing_brush.pos ~= drawing_brush.prev_pos) then
             drawing_brush:draw()
@@ -235,7 +236,7 @@ function love.mousepressed(x, y, button)
     -- Check for UI_main clicks. if UI_main click, return before taking any more inputs
     for _, frame in pairs(UI_main.frames) do
         if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
-            frame:getHit(mousePos, button)
+            frame:getHit(mousePos, button, UI_main)
             UI_main:updateFrames()
             UI_main:drawFrames()
             return
@@ -274,9 +275,10 @@ function love.textinput(t)
             TEXTBOX_SELECTED:draw()
         end
 
+        --[[
         if TEXTBOX_SELECTED.parent.id == 'f_brush_properties' then
             drawing_brush:updateFromProperties()
-        end
+        end]]
     end
 end
 

@@ -36,27 +36,19 @@ function Brush:new(o, inPos, inSize)
 end
 
 -- Get values from properties
--- Redo to get values properly from the actual objects instead of checking selected textbox
-function Brush:updateFromProperties()
+function Brush:updateFromProperties(UI_ref)
     local properties_id = 'f_brush_properties'
-    local property = TEXTBOX_SELECTED
-    local value = property:getValueNumber()
+    --print(UI_ref.properties)
+    local properties = UI_ref.properties[properties_id].contents
 
     local range_size = {min = 5, max = 500}
     local range_hardness = {min = 0., max = .999}
     local range_lazy = {min = 5, max = 600}
     
-    if property.text ~= nil then
-        if property.id == "p_brush_rad" then
-            self.size = clamp(range_size.min, range_size.max, value)
-        elseif  property.id == "p_brush_hard" then
-            self.hardness = clamp(range_hardness.min, range_hardness.max, value)
-        elseif  property.id == "p_brush_lazy" then
-            self.lazy_size = clamp(range_lazy.min, range_lazy.max, value)
-        elseif  property.id == "p_brush_spacing" then
-            self.spacing = value
-        end
-    end
+    self.size = clamp(range_size.min, range_size.max, properties['p_brush_rad']:getValueNumber())
+    self.hardness = clamp(range_hardness.min, range_hardness.max, properties['p_brush_hard']:getValueNumber())
+    self.lazy_size = clamp(range_lazy.min, range_lazy.max, properties['p_brush_lazy']:getValueNumber())
+    self.spacing = properties['p_brush_spacing']:getValueNumber()
 end
 
 
