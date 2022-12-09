@@ -58,7 +58,7 @@ SIZE_OUT = vec(1024)
 CANVAS_SCALE = 1
 
 -- Minimum space between draw area and window edge
-PADDING_min = vec(300, 200)
+PADDING_min = vec(300, 50)
 PADDING = vCopy(PADDING_min)
 PADDING_HALF = PADDING / 2
 
@@ -99,10 +99,11 @@ function love.load()
 
     UI_main = UI:new(nil)
     UI_main:init()
-    UI_main:updateFrames()
-    UI_main:drawFrames()
 
     windowManager()
+
+    UI_main:updateFrames()
+    UI_main:drawFrames()
 
     -- Initialize the image to 0-vectors (or 0.5-vectors since they need to encode -1...1 data)
     local function pixelInit(x, y, r, g, b, a)
@@ -190,7 +191,10 @@ function love.draw()
     lg.draw(CANVAS_UI_STATIC)
     lg.draw(ICON_BATCH)
 
+    local scaled_canvas = CANVAS_SCALE * SIZE_OUT
+    lg.print("Size: "..SIZE_OUT.x.." x "..SIZE_OUT.y, PADDING.x, PADDING.y + scaled_canvas.y)
 
+    -- On screen debug printing
     mouseCanvas = toCanvasSpace(mousePos)
     lg.print(lfs.getIdentity(), PADDING.x + 30, PADDING.y + 30)
     lg.print(mousePos.x .. ", " .. mousePos.y, PADDING.x + 30, PADDING.y + 30 + 15)
@@ -210,18 +214,6 @@ end
 
 
 function love.keypressed(key, scancode, isrepeat)
-    if key == 's' and not isrepeat then
-        saveScreen()
-    end
-    if key == 'c' then
-        WALKERS_RESPAWN = false
-    end
-    if key == 'n' then
-        filterNormalize(IMGDATA_MAIN)
-    end
-    if key == 'b' then
-        filterBoxBlur(IMGDATA_MAIN)
-    end
     if key == 'backspace' and TEXTBOX_SELECTED ~= nil then
         TEXTBOX_SELECTED:backspace()
     end
@@ -290,14 +282,26 @@ end
 
 --- Save image
 function saveScreen()
+    local properties_id = 'fileops_save_properties'
+    local properties = UI_main.properties[properties_id].contents
+    local outfile = properties['p_save_filename']:getValueText() .. '.png'
+
+    if outfile == '.png' or outfile == ' .png' then
+        outfile = OUTFILE
+    end
+
     if lfs.createDirectory(OUTDIR) then
-        if lfs.getInfo(OUTDIR .. OUTFILE) ~= nil then
-            lfs.newFile(OUTDIR .. OUTFILE)
+        if lfs.getInfo(OUTDIR .. outfile) ~= nil then
+            lfs.newFile(OUTDIR .. outfile)
         end
 
         -- local image_out = CANVAS_IMAGE:newImageData()
-        IMGDATA_MAIN:encode("png", OUTDIR .. OUTFILE)
+        IMGDATA_MAIN:encode("png", OUTDIR .. outfile)
     end
+end
+
+function loadImage(path)
+    contents, size = lfs.read(path)
 end
 
 function clearWalkers()
@@ -325,11 +329,21 @@ function windowManager()
 
     -- Refresh UI_main layer if dimension mismatch between it and window
     if ui_x ~= size_x or ui_y ~= size_y then
+
+        -- Update root first, then the rest
+        for _, frame in pairs(UI_main.content) do
+            frame:updateAbsolutePos()
+        end
         for _, frame in pairs(UI_main.frames) do
-            frame:updateAbsolutePos(size_x, size_y)
-            ICON_BATCH:clear()
+            frame:updateAbsolutePos()
+        end
+                
+        ICON_BATCH:clear()
+        for _, frame in pairs(UI_main.frames) do
             frame:draw()
         end
+        
+
         CANVAS_UI = lg.newCanvas(size_x, size_y)
         CANVAS_UI_STATIC = lg.newCanvas(size_x, size_y)
         UI_DATA = li.newImageData(size_x, size_y, 'rgba8')

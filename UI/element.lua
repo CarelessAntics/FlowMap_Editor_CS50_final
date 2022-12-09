@@ -59,19 +59,24 @@ function Element:setSubFrameLocation()
     end
 
     local window_w, window_h = lg.getDimensions()
-    if self.parent.align == 'right' then
-        self.subframe:updateAbsolutePos(self.parent.bBox[1].x - self.subframe.dimensions.x, window_h)
-    end
+    --self.subframe:updateAbsolutePos(self.parent.bBox[1].x,self.parent.bBox[1].y, self.subframe.dimensions.x, self.subframe.dimensions.y)
+    self.subframe:updateAbsolutePos()
+    --[[if self.subframe.align == 'right' then
+        self.subframe:updateAbsolutePos(self.bBox[1].x,0)
+    elseif self.subframe.align == 'left' then
+        self.subframe:updateAbsolutePos(self.bBox[1].x,0)
+    end]]
 end
 
 
 -- Create properties-frame for Element
 -- Takes in a variable amount of tables with the following template:
 -- {label = text, id = text, value = any, size = vector}
-function Element:setProperties(frameId, UI_ref, ... )
+function Element:setProperties(frameId, alignment, UI_ref, ... )
     -- Create a new subframe and initialize its state to false
-    self.subframe = Frame:new(nil, frameId, vec(0), 10, 'right')
+    self.subframe = Frame:new(nil, frameId, vec(0), 10, alignment)
     self.subframe.state = false
+    self.subframe.parent = self.parent
 
     local arg = {...}
 
@@ -160,6 +165,7 @@ end
 -- Insert the frame which the dropdown button will open
 function Dropdown:setContent(inContent)
     self.subframe = inContent
+    self.subframe.parent = self.parent
     self.subframe.state = false
 end
 
@@ -224,6 +230,14 @@ function TextBox:getValueNumber()
         end
     else
         return 0.
+    end
+end
+
+function TextBox:getValueText()
+    if string.len(self.text) > 0 then
+        return self.text
+    else
+        return ' '
     end
 end
 

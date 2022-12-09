@@ -107,3 +107,13 @@ function deepPrint(tbl)
     end
     print(helper(tbl))
 end
+
+function contains(value, table)
+    for _, v in pairs(table) do
+        if value == v then
+            return true
+        end
+    end
+
+    return false
+end

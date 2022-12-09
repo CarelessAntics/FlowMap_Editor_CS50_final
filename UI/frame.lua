@@ -5,12 +5,13 @@
 
 Frame = {   contents = {},
             pos = vec(0), -- Position offset relative to window and alignment
-            bBox = {vec(0), vec(0)},
+            bBox = {vec(0), vec(0)}, -- Frame bounding box absolute position values
             dimensions = vec(0),
             padding = 0,
             align = 'right',
             state = true,
             current_dropdown = nil,
+            parent = nil,
             id = ''
         }
 
@@ -51,6 +52,7 @@ function Frame:new(o, id, inPos, padding, alignment)
     o.align = alignment -- Where to align frame relative to window 'left', 'right', 'top', 'bottom', 'fill'
     o.state = true
     o.current_dropdown = nil
+    o.parent = nil
     o.id = id or 'none'
 
     return o
@@ -71,6 +73,11 @@ end
 function Frame:addElement(element, placement)
     self.contents[element.id] = element
     self.contents[element.id].parent = self
+
+    if self.contents[element.id].subframe ~= nil then
+        self.contents[element.id].subframe.parent = self
+    end
+
     local padding_total = self.padding * 2
 
     if placement == 'bottom' then
@@ -89,23 +96,50 @@ function Frame:addElement(element, placement)
 end
 
 
--- Update Frame position relative to window
-function Frame:updateAbsolutePos(rel_w, rel_h)
+-- Update absolute Frame position relative to window
+function Frame:updateAbsolutePos(offset_x, offset_y)
+
+    local window_w, window_h = lg.getDimensions()
+    offset_x = offset_x or 0
+    offset_y = offset_y or 0
+
+    local pos_rel = self.pos
+    local parent_x = window_w
+    local parent_y = window_h
+
+    if self.parent ~= nil then
+        if self.align == 'right' then
+            parent_x = self.parent.bBox[1].x + self.dimensions.x
+        elseif self.align == 'left' then
+            parent_x = self.parent.bBox[1].x - self.dimensions.x
+        end
+        
+    else
+        if self.align == 'right' then
+            parent_x = window_w
+        elseif self.align == 'left' then
+            parent_x = 0
+        elseif self.align == 'top' then
+            parent_x = 0
+        elseif self.align == 'bottom' then
+            parent_x = window_h
+        end
+    end
 
     local bBox0 = vec(0)
     local bBox1 = vec(0)
 
     if self.align == 'right' then
-        bBox0 = vec(rel_w - self.pos.x, (rel_h / 2) - self.pos.y)
+        bBox0 = vec(parent_x - pos_rel.x, (parent_y / 2) - pos_rel.y)
         bBox1 = bBox0 + self.dimensions
     elseif self.align == 'left' then
-        bBox0 = vec(self.pos.x, (rel_h / 2) - self.pos.y)
+        bBox0 = vec(parent_x + pos_rel.x, (parent_y / 2) - pos_rel.y)
         bBox1 = bBox0 + self.dimensions
     elseif self.align == 'top' then
-        bBox0 = vec((rel_w / 2) - self.pos.x, self.pos.y)
+        bBox0 = vec((window_w / 2) - pos_rel.x, parent_y + pos_rel.y)
         bBox1 = bBox0 + self.dimensions
     elseif self.align == 'bottom' then
-        bBox0 = vec((rel_w / 2) - self.pos.x, rel_h - self.pos.y)
+        bBox0 = vec((window_w / 2) - pos_rel.x, parent_y - pos_rel.y)
         bBox1 = bBox0 + self.dimensions
     end
 
