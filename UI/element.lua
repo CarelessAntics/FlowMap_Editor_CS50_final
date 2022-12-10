@@ -26,6 +26,9 @@ end
 function Element:toggleSubFrame()
     -- Update the location with every toggle
     self:setSubFrameLocation()
+    if self.type == 'dropdown' then
+        self:setPressed(false)
+    end
 
     -- If the parent frame already has a different subframe open, toggle that off and set this one on
     if self.parent.current_dropdown ~= nil and self.parent.current_dropdown ~= self then
@@ -49,6 +52,10 @@ function Element:toggleSubFrame()
     -- Toggle states
     self.state = not self.state
     self.subframe.state = not self.subframe.state
+
+    if self.type == 'dropdown'then
+        self:setPressed(self.state)
+    end
 end
 
 
@@ -61,11 +68,6 @@ function Element:setSubFrameLocation()
     local window_w, window_h = lg.getDimensions()
     --self.subframe:updateAbsolutePos(self.parent.bBox[1].x,self.parent.bBox[1].y, self.subframe.dimensions.x, self.subframe.dimensions.y)
     self.subframe:updateAbsolutePos()
-    --[[if self.subframe.align == 'right' then
-        self.subframe:updateAbsolutePos(self.bBox[1].x,0)
-    elseif self.subframe.align == 'left' then
-        self.subframe:updateAbsolutePos(self.bBox[1].x,0)
-    end]]
 end
 
 
@@ -107,7 +109,7 @@ end
 --
 -----------------------------------------
 
-button_params = {action = nil, graphics = nil}
+button_params = {action = nil, hover = false, pressed = false}
 Button = Element:new(button_params)
 
 
@@ -126,8 +128,26 @@ function Button:new(o, inID, inSize, actionFunc, inSprite)
     o.state = false
     --o.graphics = vec(0)--lg.newImage(inIcon or "assets/icons/default.png")
     o.sprite = lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512)
+    o.hover = false
+    o.pressed = false
     o.action = actionFunc -- function: what happens when button is activated
     return o
+end
+
+function Button:press()
+    local x, y, w, h = self.sprite:getViewport()
+    if self.pressed then
+        self.sprite:setViewport(x - w, y, w, h)
+    else
+        self.sprite:setViewport(x + w, y, w, h)
+    end
+    self.pressed = not self.pressed
+end
+
+function Button:setPressed(state)
+    if self.pressed ~= state then
+        self:press()
+    end
 end
 
 
@@ -138,7 +158,7 @@ end
 -----------------------------------------
 
 dropdown_params = {graphics = nil}
-Dropdown = Element:new(dropdown_params)
+Dropdown = Button:new(dropdown_params)
 
 
 -- This could be deleted and merged to base Element at some point

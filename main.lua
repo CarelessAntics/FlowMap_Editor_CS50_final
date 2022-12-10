@@ -131,6 +131,11 @@ function love.update()
     -- Return mouse position
     mousePos = mouseHandler()
 
+    for _, frame in pairs(UI_main.frames) do
+        if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
+        end
+    end
+
     --[[
     -- Update UI_main
     local function clearImgData(x, y, r, g, b, a)
@@ -228,7 +233,7 @@ function love.mousepressed(x, y, button)
     -- Check for UI_main clicks. if UI_main click, return before taking any more inputs
     for _, frame in pairs(UI_main.frames) do
         if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
-            frame:getHit(mousePos, button, UI_main)
+            frame:getHit(mousePos, button, UI_main, true)
             UI_main:updateFrames()
             UI_main:drawFrames()
             return
@@ -251,6 +256,16 @@ end
 
 
 function love.mousereleased( x, y, button, istouch, presses)
+
+    for _, frame in pairs(UI_main.frames) do
+        if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
+            frame:getHit(mousePos, button, UI_main, false)
+            UI_main:updateFrames()
+            UI_main:drawFrames()
+            return
+        end
+    end
+
     if mode_DRAW then
         if drawing_brush.active then
             drawing_brush.active = false

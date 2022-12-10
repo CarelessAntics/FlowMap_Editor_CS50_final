@@ -47,7 +47,7 @@ function UI:init()
     frame_filters:addElement(btn_blur, 'bottom')
 
     -- Elements for dd_drawing
-    btn_mode_draw = Button:new(nil, "filter_normalize2", vec(button_size), function() mode_DRAW = true mode_RANDOMWALK = false end)
+    btn_mode_draw = Button:new(nil, "filter_normalize2", vec(button_size), function() mode_DRAW = true mode_RANDOMWALK = false end, vec(6, 0))
     btn_mode_draw:setProperties('f_brush_properties', 'left', self, 
                                 {label = "Brush Radius", id = "p_brush_rad", value = 50, size = vec(4, 1)},
                                 {label = "Brush Hardness", id = "p_brush_hard", value = .5, size = vec(4, 1)},
@@ -75,7 +75,7 @@ function UI:init()
     -- TODO: File load
     -- TODO: Open save location
 
-    dd_fileops = Dropdown:new(nil, "fileops_dropdown", vec(button_size), vec(0,0))
+    dd_fileops = Dropdown:new(nil, "fileops_dropdown", vec(button_size), vec(4,1))
 
     frame_fileops = Frame:new(nil, 'frame_fileops', vec(0), 0, 'right')
 

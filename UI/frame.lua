@@ -149,27 +149,36 @@ end
 
 
 -- Hit detection for Frame elements
-function Frame:getHit(mPos, mButton, UI_ref)
+function Frame:getHit(mPos, mButton, UI_ref, key_pressed)
     for _, element in pairs(self.contents) do
         local abs = self:absolute(element.pos)
+        local hovering = true
         if isHitRect(mPos, abs, abs + element.size) then
 
-            if mButton == 1 then
-                -- TODO: think of a way to make button actions better
-                if element.type == 'button' then
-                    element.action(IMGDATA_MAIN, UI_ref)
+            if not key_pressed then
+                if mButton == 1 then
 
-                elseif element.type == 'dropdown' then
-                    element:toggleSubFrame()
-
-                elseif element.type == 'textbox' then
-                    selectTextBox(element)
+                    -- TODO: think of a way to make button actions better
+                    if element.type == 'button' then
+                        element.action(IMGDATA_MAIN, UI_ref)
+            
+                    elseif element.type == 'dropdown' then
+                        element:toggleSubFrame()
+            
+                    elseif element.type == 'textbox' then
+                        selectTextBox(element)
+                    end
+            
+                elseif mButton == 2 then
+                    if element.subframe ~= nil then
+                        element:toggleSubFrame()
+                    end
                 end
+            end
 
-            elseif mButton == 2 then
-                if element.subframe ~= nil then
-                    element:toggleSubFrame()
-                end
+            -- Make sure a sprite property exists
+            if element.sprite ~= nil and element.type ~= 'dropdown' then
+                element:press()           
             end
         end
     end
