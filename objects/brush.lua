@@ -14,6 +14,7 @@ Brush = {
     spacing = 5, -- Units = pixels,
     wrap = true, -- Brush wraparound
     rotate = true,
+    alpha_transp = 1,
     mode = "lazy" -- Options: normal, lazy
 }
 
@@ -31,6 +32,7 @@ function Brush:new(o, inPos, inSize)
     o.pos = inPos
     o.size = 50
     o.lazy_size = 100
+    o.alpha_transp = 1
 
     return o
 end
@@ -49,6 +51,7 @@ function Brush:updateFromProperties(UI_ref)
     self.hardness = clamp(range_hardness.min, range_hardness.max, properties['p_brush_hard']:getValueNumber())
     self.lazy_size = clamp(range_lazy.min, range_lazy.max, properties['p_brush_lazy']:getValueNumber())
     self.spacing = properties['p_brush_spacing']:getValueNumber()
+    self.alpha_transp = properties['p_brush_alpha_transp']:getValueNumber()
 end
 
 
@@ -119,7 +122,7 @@ end
 
 
 --- Main function for drawing
-function Brush:draw()
+function Brush:draw(mode)
     if vLength(self.dir) == 0 then
         return
     end
@@ -148,7 +151,7 @@ end
 ---@param inVector table
 ---@param draw_size number 
 ---@param col table
-function Brush:drawToImgData(inVector, draw_size, col)
+function Brush:drawToImgData(inVector, draw_size, col, mode)
 
     -- Map pixel colors using image alpha
     local function pixelFunctionAlphaDraw(x, y, r, g, b, a)
@@ -170,9 +173,9 @@ function Brush:drawToImgData(inVector, draw_size, col)
         local new_g = PIXEL_INPUT_COL.g
         local new_b = PIXEL_INPUT_COL.b
 
-        r = lerp(r, new_r, brush_alpha)
-        g = lerp(g, new_g, brush_alpha)
-        b = lerp(b, new_b, brush_alpha)
+        r = lerp(r, new_r, brush_alpha * self.alpha_transp)
+        g = lerp(g, new_g, brush_alpha * self.alpha_transp)
+        b = lerp(b, new_b, brush_alpha * self.alpha_transp)
 
         return r, g, b, a
     end

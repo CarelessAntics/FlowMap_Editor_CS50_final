@@ -93,6 +93,8 @@ function Frame:addElement(element, placement)
 
     local dims = self.bBox[2] - self.bBox[1]
     self.dimensions = vec(math.abs(dims.x), math.abs(dims.y))
+
+    self:updateAbsolutePos(0,0)
 end
 
 
@@ -109,14 +111,14 @@ function Frame:updateAbsolutePos(offset_x, offset_y)
 
     if self.parent ~= nil then
         if self.align == 'right' then
-            parent_x = self.parent.bBox[1].x + self.dimensions.x
+            parent_x = self.parent.bBox[1].x + self.parent.dimensions.x
         elseif self.align == 'left' then
             parent_x = self.parent.bBox[1].x - self.dimensions.x
         end
         
     else
         if self.align == 'right' then
-            parent_x = window_w
+            parent_x = window_w - self.dimensions.x
         elseif self.align == 'left' then
             parent_x = 0
         elseif self.align == 'top' then
@@ -159,8 +161,8 @@ function Frame:getHit(mPos, mButton, UI_ref, key_pressed)
                 if mButton == 1 then
 
                     -- TODO: think of a way to make button actions better
-                    if element.type == 'button' then
-                        element.action(IMGDATA_MAIN, UI_ref)
+                    if element.type == 'button' or element.type == 'button_wide'then
+                        element.action(unpack(element.parameters))
             
                     elseif element.type == 'dropdown' then
                         element:toggleSubFrame()
@@ -202,7 +204,23 @@ function Frame:draw()
         local scales = element.size / vec(icon_size)
 
         lg.setColor(1, 1, 1, 1)
-        ICON_BATCH:add(element.sprite, abs.x, abs.y, 0, scales.x, scales.y)
+        if element.type == 'button_wide' then
+            scales = vec(element.size.y) / vec(icon_size)
+            ICON_BATCH:add(element.sprite[1], abs.x, abs.y, 0, scales.x, scales.y)
+            ICON_BATCH:add(element.sprite[2], abs.x + element.size.y, abs.y, 0, scales.x + element.width, scales.y)
+            ICON_BATCH:add(element.sprite[3], abs.x + element.size.y + element.width, abs.y, 0, scales.x, scales.y)
+
+            local font_offset = FONT_GLOBAL:getHeight()
+            lg.setCanvas(CANVAS_UI_STATIC)
+            if not element.pressed then
+                lg.print(element.label, abs.x + font_offset + (element.size.y * ICON_OFFSET / 2), abs.y + (element.size.y / 2) - (font_offset / 2) - (element.size.y * ICON_OFFSET / 2))
+            else
+                lg.print(element.label, abs.x + font_offset - (element.size.y * ICON_OFFSET / 2), abs.y + (element.size.y / 2) - (font_offset / 2) + (element.size.y * ICON_OFFSET / 2))
+            end
+            lg.setCanvas()
+        else
+            ICON_BATCH:add(element.sprite, abs.x, abs.y, 0, scales.x, scales.y)
+        end
 
         -- In case of a dropdown, add in a small triangle
         if element.type == 'dropdown' then
@@ -221,7 +239,7 @@ end
 
 
 function Frame:drawDebug()
-    lg.setCanvas(CANVAS_UI)
+    lg.setCanvas(CANVAS_UI_STATIC)
     lg.setColor(1, 0, 0, 1)
 
     lg.setLineWidth(2)

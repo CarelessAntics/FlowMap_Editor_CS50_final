@@ -4,7 +4,7 @@
 Element = {  pos = vec(0), -- Position will be top-left corner
             size = vec(1),
             id = nil,
-            type = 'button', -- 'button, dropdown'
+            type = 'button', -- 'button, dropdown, textbox'
             state = false,
             parent = nil,
             tooltip = "",
@@ -109,11 +109,11 @@ end
 --
 -----------------------------------------
 
-button_params = {action = nil, hover = false, pressed = false}
+button_params = {action = nil, parameters = {}, hover = false, pressed = false}
 Button = Element:new(button_params)
 
 
-function Button:new(o, inID, inSize, actionFunc, inSprite)
+function Button:new(o, inID, inSize, actionFunc, parameters, inSprite)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
@@ -122,7 +122,7 @@ function Button:new(o, inID, inSize, actionFunc, inSprite)
 
     -- Initialize instance params
     o.pos = vec(0)
-    o.size = inSize
+    o.size = vec(inSize)
     o.id = inID
     o.type = 'button'
     o.state = false
@@ -130,7 +130,8 @@ function Button:new(o, inID, inSize, actionFunc, inSprite)
     o.sprite = lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512)
     o.hover = false
     o.pressed = false
-    o.action = actionFunc -- function: what happens when button is activated
+    o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
+    o.parameters = parameters or {}
     return o
 end
 
@@ -150,6 +151,46 @@ function Button:setPressed(state)
     end
 end
 
+buttonWide_params = {width = 0, label = ''}
+ButtonWide = Button:new(buttonWide_params)
+
+function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameters, inSprite)
+    o = o or {}
+    local mt = {__index = self}
+    setmetatable(o, mt)
+
+    inSprite = inSprite or vec(0, 7)
+
+    -- Initialize instance params
+    o.pos = vec(0)
+    o.width = inWidth or 0
+    o.size = vec((inSize * 2) + o.width, inSize)
+    o.label = inLabel or 'noLabel'
+    o.id = inID
+    o.type = 'button_wide'
+    o.state = false
+    --o.graphics = vec(0)--lg.newImage(inIcon or "assets/icons/default.png")
+    o.sprite = {lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512),
+                lg.newQuad((inSprite.x + 1) * 64, inSprite.y * 64, 1, 64, 512, 512),
+                lg.newQuad((inSprite.x + 2) * 64, inSprite.y * 64, 64, 64, 512, 512)}
+    o.hover = false
+    o.pressed = false
+    o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
+    o.parameters = parameters or {}
+    return o
+end
+
+function ButtonWide:press()
+    for _, sprite_part in pairs(self.sprite) do
+        local x, y, w, h = sprite_part:getViewport()
+        if self.pressed then
+            sprite_part:setViewport(x, y - h, w, h)
+        else
+            sprite_part:setViewport(x, y + h, w, h)
+        end
+    end
+    self.pressed = not self.pressed
+end
 
 -----------------------------------------
 -- 
@@ -170,7 +211,7 @@ function Dropdown:new(o, inID, inSize, inSprite)
     inSprite = inSprite or vec(0, 7)
     -- Initialize instance params
     o.pos = vec(0)
-    o.size = inSize
+    o.size = vec(inSize)
     o.id = inID
     o.type = 'dropdown'
     o.state = false

@@ -25,7 +25,7 @@ require "./UI/UI_main"
 --      Properties
 --      preview window
 -- TODO: Orbiters
--- TODO: Saving image
+-- TODO: implement image size change (also for loading images)
 -- TODO: Layers
 -- TODO: Image processing, blurs, filters etc
 -- TODO: Switch from drawing circles to canvases to writing into imagedata
@@ -33,7 +33,7 @@ require "./UI/UI_main"
 
 --[[-----------------------------------------
 
-GLOBALS START
+ GLOBALS START
 
 --]]-----------------------------------------
 
@@ -71,6 +71,7 @@ CANVAS_UI_STATIC = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING
 
 ICON_ATLAS = lg.newImage("assets/icons/icon_atlas.png")
 ICON_BATCH = lg.newSpriteBatch(ICON_ATLAS, 50, 'static')
+ICON_OFFSET = 0.07
 
 UI_DATA = li.newImageData(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, "rgba8")
 UI_IMAGE = lg.newImage(UI_DATA)
@@ -86,11 +87,11 @@ FONT_GLOBAL:setFilter("nearest", "nearest", 1)
 OUTDIR = "output/"
 OUTFILE = "outfile.png"
 
--------------------------------------------
--- 
--- LOVE FUNCTIONS
--- 
--------------------------------------------
+--[[-----------------------------------------
+ 
+ LOVE FUNCTIONS
+ 
+--]]-----------------------------------------
 
 function love.load()
 
@@ -164,7 +165,7 @@ function love.update()
         drawing_brush:updateFromProperties(UI_main)
         drawing_brush:moveToLazy(mousePos)
         if drawing_brush.active and (drawing_brush.pos ~= drawing_brush.prev_pos) then
-            drawing_brush:draw()
+            drawing_brush:draw('draw')
         end
         --drawing_brush:moveTo(mousePos)
     end
@@ -193,15 +194,15 @@ function love.draw()
         frame:draw()
     end]]
     lg.draw(CANVAS_UI)
-    lg.draw(CANVAS_UI_STATIC)
     lg.draw(ICON_BATCH)
+    lg.draw(CANVAS_UI_STATIC)
 
     local scaled_canvas = CANVAS_SCALE * SIZE_OUT
     lg.print("Size: "..SIZE_OUT.x.." x "..SIZE_OUT.y, PADDING.x, PADDING.y + scaled_canvas.y)
 
     -- On screen debug printing
     mouseCanvas = toCanvasSpace(mousePos)
-    lg.print(lfs.getIdentity(), PADDING.x + 30, PADDING.y + 30)
+    lg.print(lfs.getSaveDirectory(), PADDING.x + 30, PADDING.y + 30)
     lg.print(mousePos.x .. ", " .. mousePos.y, PADDING.x + 30, PADDING.y + 30 + 15)
     lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING.x + 30, PADDING.y + 30 + 30)
     lg.print(drawing_brush.pos.x .. ", " .. drawing_brush.pos.y, PADDING.x + 30, PADDING.y + 30 + 45)
@@ -296,10 +297,13 @@ end
 -------------------------------------------
 
 --- Save image
-function saveScreen()
-    local properties_id = 'fileops_save_properties'
+function saveScreen(name_field)
+
+    local outfile = name_field:getValueText() .. '.png'
+
+    --[[local properties_id = 'fileops_save_properties'
     local properties = UI_main.properties[properties_id].contents
-    local outfile = properties['p_save_filename']:getValueText() .. '.png'
+    local outfile = properties['p_save_filename']:getValueText() .. '.png']]
 
     if outfile == '.png' or outfile == ' .png' then
         outfile = OUTFILE
@@ -315,8 +319,12 @@ function saveScreen()
     end
 end
 
-function loadImage(path)
-    contents, size = lfs.read(path)
+--- load image
+---@param filename string
+function loadImage(filename)
+    -- TODO: implement image size change
+    IMGDATA_MAIN = li.newImageData(filename)
+    DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
 end
 
 function clearWalkers()
