@@ -6,7 +6,9 @@ Work in progress final project for the CS50x 2022 Intro to Computer Science cour
 ## What is this
 
 A software for painting 2D vectormaps to be used in video game shaders, using the LÖVE framework (https://love2d.org/). 
+
 ----
+
 Vector maps are often used in video game shaders to distort materials and textures. One use case is in flow shaders, which use vector maps to offset a texture in a certain direction to create the appearance of a flowing surface, such as water. As the vector maps encode vectors in images as pixel colors, they can be made in regular image editing software such as Photoshop or Substance Designer. However, they are not dedicated vector editing software, and using them for this admittedly niche purpose can be clunky. This project is intended to make that process a bit easier, with the brush painting its own movement direction instead of a preset color.
 
 ## Features
