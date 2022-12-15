@@ -37,9 +37,9 @@ function UI:init()
     frame_drawing = Frame:new(nil, 'frame_drawing', vec(0), FRAME_PADDING, 'left')
 
     -- Elements for dd_filters
-    btn_normalize = Button:new(nil, "filter_normalize", button_size, filterNormalize, {}, vec(2, 0))
+    btn_normalize = Button:new(nil, "filter_normalize", button_size, filterNormalize, {IMGDATA_MAIN, self}, vec(2, 0))
 
-    btn_blur = Button:new(nil, "filter_blur", button_size, filterBoxBlur, {}, vec(4, 0))
+    btn_blur = Button:new(nil, "filter_blur", button_size, filterBoxBlur, {IMGDATA_MAIN, self}, vec(4, 0))
     btn_blur:setProperties('f_blur_properties', 'left', self,
                             {label = "Blur Radius", id = "p_blur_rad", value = 10, size = vec(4, 1)},
                             {label = "Blur Samples", id = "p_blur_samples", value = 4, size = vec(4, 1)})
@@ -59,7 +59,7 @@ function UI:init()
 
     btn_mode_walker = Button:new(nil, "filter_blur2", button_size, function() mode_DRAW = false mode_RANDOMWALK = true end, {})
     btn_wide_test = ButtonWide:new(nil, "wide_test", button_size, button_size, 'Test Label', nil, {}, vec(0, 2))
-    textbox_test = TextBox:new(nil, "text_test", 'number', vec(4, 1), "label123")
+    textbox_test = TextBox:new(nil, "text_test", 'number', nil, vec(4, 1), "label123")
     --textbox_test2 = TextBox:new(nil, "text_test2", 'number', vec(4, 1), "labeladdasdsd")
 
     -- Add Elements to frame_drawing
@@ -87,31 +87,52 @@ function UI:init()
     --[[btn_save = Button:new(nil, 'fileops_save', button_size, saveScreen, {}, vec(0,1))
     btn_save:setProperties('fileops_save_properties', 'right', self, 
                             {label="File Name", id="p_save_filename", value="", size=vec(10, 1)})]]
+    dd_new = Dropdown:new(nil, 'fileops_new', button_size, vec(6,1))
     dd_save = Dropdown:new(nil, 'fileops_save', button_size, vec(0,1))
     dd_open = Dropdown:new(nil, 'fileops_open', button_size, vec(2,1))
+    dd_resize = Dropdown:new(nil, 'fileops_resize', button_size, vec(6,2))
 
+    frame_new = Frame:new(nil, 'frame_new', vec(0), FRAME_PADDING, 'right')
     frame_open = Frame:new(nil, 'frame_open', vec(0), FRAME_PADDING, 'right')
     frame_save = Frame:new(nil, 'frame_save', vec(0), FRAME_PADDING, 'right')
+    frame_resize = Frame:new(nil, 'frame_resize', vec(0), FRAME_PADDING, 'right')
 
-    txt_save = TextBox:new(nil, "text_save", 'text', vec(10, 1), "File Name")
+    txt_newsize_x = TextBox:new(nil, "text_new_x", 'number', tostring(SIZE_OUT.x), vec(5, 1), "Size X:", nil, 4)
+    txt_newsize_y = TextBox:new(nil, "text_new_y", 'number', tostring(SIZE_OUT.y), vec(5, 1), "Size Y:", nil, 4)
+    btn_new = ButtonWide:new(nil, 'fileops_new', 40, 60, 'New Image', newImage, {txt_newsize_x, txt_newsize_y}, vec(0,2))
+
+    frame_new:addElement(txt_newsize_x, 'bottom')
+    frame_new:addElement(txt_newsize_y, 'bottom')
+    frame_new:addElement(btn_new, 'bottom')
+
+    txt_resize_x = TextBox:new(nil, "text_resize_x", 'number', tostring(SIZE_OUT.x), vec(5, 1), "Size X:", nil, 4)
+    txt_resize_y = TextBox:new(nil, "text_resize_y", 'number', tostring(SIZE_OUT.y), vec(5, 1), "Size Y:", nil, 4)
+    btn_resize = ButtonWide:new(nil, 'fileops_resize', 40, 60, 'Resize Image', resizeImage, {txt_resize_x, txt_resize_y}, vec(0,2))
+
+    frame_resize:addElement(txt_resize_x, 'bottom')
+    frame_resize:addElement(txt_resize_y, 'bottom')
+    frame_resize:addElement(btn_resize, 'bottom')
+
+    txt_save = TextBox:new(nil, "text_save", 'string', nil, vec(10, 1), "File Name")
     btn_save = ButtonWide:new(nil, 'fileops_save', 40, 10, 'Save', saveScreen, {txt_save}, vec(0,2))
 
     frame_save:addElement(txt_save, 'bottom')
     frame_save:addElement(btn_save, 'bottom')
 
-    open_btns = self:createFileListButtons(40)
-    for _, btn in pairs(open_btns) do
-        frame_open:addElement(btn, 'bottom')
-    end
+    self:refreshFileList(frame_open, button_size)
 
+    dd_new:setContent(frame_new)
     dd_open:setContent(frame_open)
     dd_save:setContent(frame_save)
+    dd_resize:setContent(frame_resize)
 
     --[[btn_open:setProperties('fileops_open_properties', 'right', self, 
                             {label="File Name", id="p_open_filename", value="", size=vec(10, 1)})]]
 
+    frame_fileops:addElement(dd_new, 'bottom')
     frame_fileops:addElement(dd_save, 'bottom')
     frame_fileops:addElement(dd_open, 'bottom')
+    frame_fileops:addElement(dd_resize, 'bottom')
 
     dd_fileops:setContent(frame_fileops)
 
@@ -132,6 +153,23 @@ function UI:init()
     --self.frames[#self.frames + 1] = filters_frame
     --self.frames[#self.frames + 1] = drawing_frame
     --self.frames[#self.frames + 1] = sidebar_right
+end
+
+
+-- Refresh open file list
+function UI:refreshFileList(parent_frame, button_size)
+
+    -- Clear old open file dialogue. Create a refresh button and initialise the frame with it
+    parent_frame:clear()
+    local btn_refresh = Button:new(nil, "fileops_open_refresh", button_size, self.refreshFileList, {self, parent_frame, button_size}, vec(4, 2))
+    parent_frame:addElement(btn_refresh, 'bottom')
+
+    -- Create a list of openable files
+    local open_btns = self:createFileListButtons(40)
+    for _, btn in pairs(open_btns) do
+        parent_frame:addElement(btn, 'bottom')
+    end
+
 end
 
 

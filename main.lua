@@ -15,6 +15,7 @@ require "./helpers/helpers"
 require "./objects/brush"
 require "./objects/walker"
 require "./imageprocessing/filters"
+require "./imageprocessing/resize"
 require "./UI/element"
 require "./UI/frame"
 require "./UI/UI_main"
@@ -30,12 +31,36 @@ require "./UI/UI_main"
 -- TODO: Image processing, blurs, filters etc
 -- TODO: Switch from drawing circles to canvases to writing into imagedata
 
+function initImage()
+    DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
+    CANVAS_IMAGE = lg.newCanvas(SIZE_OUT.x, SIZE_OUT.y)
+end
+
+function screenInit(size_x, size_y)
+
+    local new_imgData = li.newImageData(size_x, size_y, "rgba16")
+    -- new_imgData:paste(IMGDATA_MAIN, 0, 0, 0, 0, SIZE_OUT.x, SIZE_OUT.y)
+
+    SIZE_OUT = vec(size_x, size_y)
+    IMGDATA_MAIN = new_imgData
+
+    initImage()
+
+    -- Initialize the image to 0-vectors (or 0.5-vectors since they need to encode -1...1 data)
+    local function pixelInit(x, y, r, g, b, a)
+        return 0.5, 0.5, 0, 1
+    end
+    IMGDATA_MAIN:mapPixel(pixelInit)
+end
 
 --[[-----------------------------------------
 
  GLOBALS START
 
 --]]-----------------------------------------
+
+lfs.setIdentity('VectorMapPainter')
+lw.setTitle('Vector Map Painter')
 
 -- Different Drawing modes
 mode_RANDOMWALK = false
@@ -63,9 +88,11 @@ PADDING = vCopy(PADDING_min)
 PADDING_HALF = PADDING / 2
 
 lw.setMode(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, {resizable = true})
-IMGDATA_MAIN = li.newImageData(SIZE_OUT.x, SIZE_OUT.y, "rgba16")
-DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
-CANVAS_IMAGE = lg.newCanvas(SIZE_OUT.x, SIZE_OUT.y)
+
+IMGDATA_MAIN = nil -- Main image where drawing happens
+CANVAS_IMAGE = nil -- Main canvas where IMGDATA_MAIN is drawn on screen
+screenInit(SIZE_OUT.x, SIZE_OUT.y)
+
 CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 CANVAS_UI_STATIC = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 
@@ -105,12 +132,6 @@ function love.load()
 
     UI_main:updateFrames()
     UI_main:drawFrames()
-
-    -- Initialize the image to 0-vectors (or 0.5-vectors since they need to encode -1...1 data)
-    local function pixelInit(x, y, r, g, b, a)
-        return 0.5, 0.5, 0, 1
-    end
-    IMGDATA_MAIN:mapPixel(pixelInit)
 
     lg.setCanvas(CANVAS_IMAGE)
     lg.clear(.5, .5, 0, 1)
@@ -323,8 +344,44 @@ end
 ---@param filename string
 function loadImage(filename)
     -- TODO: implement image size change
-    IMGDATA_MAIN = li.newImageData(filename)
+    local new_image = li.newImageData(filename)
+    local new_w, new_h = new_image:getDimensions()
+
+    screenInit(new_w, new_h)
+    IMGDATA_MAIN = new_image
     DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
+end
+
+function newImage(size_button_x, size_button_y)
+    local size_x = size_button_x:getValueNumber()
+    local size_y = size_button_y:getValueNumber() ~= 0 and size_button_y:getValueNumber() or size_x
+
+    screenInit(size_x, size_y)
+end
+
+function resizeImage(size_button_x, size_button_y)
+
+    local new_w = size_button_x:getValueNumber()
+    local new_h = size_button_y:getValueNumber() ~= 0 and size_button_y:getValueNumber() or new_w
+
+    SIZE_OUT = vec(new_w, new_h)
+
+    local old_img = lg.newImage(IMGDATA_MAIN)
+    local format_old = old_img:getFormat()
+    local old_w, old_h = old_img:getDimensions()
+
+    local scale_x = new_w / old_w
+    local scale_y = new_h / old_h
+
+    local temp_canvas = lg.newCanvas(new_w, new_h, {format = format_old})
+    lg.setCanvas(temp_canvas)
+    lg.draw(old_img, 0, 0, 0, scale_x, scale_y)
+    lg.setCanvas()
+
+    local new_img = temp_canvas:newImageData(format)
+    IMGDATA_MAIN = new_img
+
+    initImage()
 end
 
 function clearWalkers()

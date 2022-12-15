@@ -98,6 +98,15 @@ function Frame:addElement(element, placement)
 end
 
 
+function Frame:clear()
+
+    self.contents = {}
+    self.dimensions = vec(0)
+    self.bBox = {self.bBox[1], vCopy(self.bBox[1])}
+
+end
+
+
 -- Update absolute Frame position relative to window
 function Frame:updateAbsolutePos(offset_x, offset_y)
 

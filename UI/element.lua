@@ -86,15 +86,15 @@ function Element:setProperties(frameId, alignment, UI_ref, ... )
         local newProperty
         -- o, inID, inValueType, inSize, inLabel, inFont
         if type(property.value) == 'number' then
-            newProperty = TextBox:new(nil, property.id, 'number', property.size, property.label, nil)
-            newProperty.text = tostring(property.value)
+            newProperty = TextBox:new(nil, property.id, 'number', tostring(property.value), property.size, property.label, nil)
+            --newProperty.text = tostring(property.value)
 
         elseif type(property.value) == 'string' then
-            newProperty = TextBox:new(nil, property.id, 'string', property.size, property.label, nil)
-            newProperty.text = tostring(property.value)
+            newProperty = TextBox:new(nil, property.id, 'string', tostring(property.value), property.size, property.label, nil)
+            --newProperty.text = tostring(property.value)
 
         else
-            newProperty = TextBox:new(nil, property.id, 'number', property.size, property.label, nil)
+            newProperty = TextBox:new(nil, property.id, 'number', nil, property.size, property.label, nil)
             newProperty.text = "Something Went Wrong"
         end
 
@@ -236,11 +236,11 @@ end
 --
 -----------------------------------------
 
-textbox_params = {text = "", label = "", valuetype = "", padding = 2.5, font = nil, box_size = vec(0)}
+textbox_params = {text = "", label = "", valuetype = "", padding = 2.5, font = nil, box_size = vec(0), max_length = nil}
 TextBox = Element:new(textbox_params)
 
 -- Initialize textbox instance
-function TextBox:new(o, inID, inValueType, inSize, inLabel, inFont)
+function TextBox:new(o, inID, inValueType, initValue, inSize, inLabel, inFont, inLength)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
@@ -265,9 +265,10 @@ function TextBox:new(o, inID, inValueType, inSize, inLabel, inFont)
     o.id = inID
     o.type = 'textbox'
     o.state = false -- writing or not
-    o.text = ""
+    o.text = initValue or ""
+    o.max_length = inLength or -1
     
-    o.valuetype = inValueType or "any" -- 'number', 'letter' or 'any'
+    o.valuetype = inValueType or "any" -- 'number', 'string'
     return o
 end
 
@@ -305,18 +306,33 @@ end
 
 -- Validate text input to match valuetype
 function TextBox:validate(t)
+
+    local decimal = true
+    local letters = true
+    local length = true
+
+    -- Check for decimal points in whole text. Prevent adding more if one exists
+    -- At the same time, ensure input is only digits
     if self.valuetype == 'number' then
-        -- Check for decimal points in whole text. Prevent adding more if one exists
         if string.match(self.text, "[.]+") then
-            return string.match(t, "%d+") ~= nil
+            decimal = string.match(t, "%d+") ~= nil
         else
-            return string.match(t, "%d?[.]?") ~= nil
+            decimal = string.match(t, "%d?[.]?") ~= nil
         end
-    elseif self.valuetype == 'letter' then
+
+    -- Check that input is letters only
+    elseif self.valuetype == 'letters' then
         return string.match(t, "%a+") ~= nil
     else
         return true
     end
+
+    -- Check for maximum string length
+    if string.len(self.text .. t) > self.max_length and self.max_length > 0 then
+        length = false
+    end
+
+    return decimal and letters and length
 end
 
 
