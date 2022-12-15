@@ -13,30 +13,39 @@ Vector maps are often used in video game shaders to distort materials and textur
 
 ## Features
 
-##### Vector map painting
+#### Vector map painting
 Use a brush to paint 2D vector maps normalized to 0...1 space. Change properties like spacing and lazy mouse radius to ensure smooth strokes. You can also draw using random walkers to get interesting procedural patterns.
 
-#### Filters
+----
 
-##### Blur
+### Filters
+
+#### Blur
 A simple box blur. Very slow at the moment
 
-##### Normalize
+#### Normalize
 Force all vectors to unit vectors (length = 1)
 
-#### File Operations
-##### Saving
+----
+
+### File/Document Operations
+#### Saving
 LÖVE isn't exactly designed for this type of usage, so all images are saved in %appdata%/LOVE/VectorMapPainter/output/. 
 
-##### Loading
+#### Loading
 The vector map painter can load in any image in the root folder specified above, as long as the format is supported by LÖVE (png, jpg). Some png files might use compression which messes things up, but resaving them should resolve any issues.
 
-##### Resizing
+#### Resizing
 Images can be resized to any 4-digit size, though powers of 2 are recommended. Large sizes also slow down performance
 
-#### Custom UI system
+----
+
+### Custom UI system
 A UI system created purely for this software. All UI elements reside in frame objects, which can be nested inside each other and in other elements as dropdowns. Elements include icon-based buttons, buttons with custom text, text input boxes, and dropdown menus. Right clicking an element opens a properties window in case one exists
 
+## Intro Video
+
+TODO
 
 ## Images
 ----
