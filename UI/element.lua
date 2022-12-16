@@ -8,6 +8,7 @@ Element = {  pos = vec(0), -- Position will be top-left corner
             state = false,
             parent = nil,
             tooltip = "",
+            tooltip_dimensions = vec(0),
             subframe = nil,
             sprite = nil
         }
@@ -103,6 +104,58 @@ function Element:setProperties(frameId, alignment, UI_ref, ... )
     UI_ref.properties[frameId] = self.subframe
 end
 
+-- Get the dimensions of tooltip box contents for drawing
+function Element:setTooltipDims(font)
+
+    local font_width = font:getWidth(self.tooltip)
+    local font_height = font:getHeight()
+
+    local width = 0
+    local _, count = string.gsub(self.tooltip, '\n', '')
+    local height = (count + 1) * font_height
+
+    for str in string.gmatch(self.tooltip, '([^\n]+)') do
+        width = math.max(width, font:getWidth(str))
+    end
+
+    self.tooltip_dimensions = vec(width, height)
+
+end
+
+function Element:drawTooltip(mousePos)
+
+    lg.setCanvas(CANVAS_UI_OVERLAY)
+    lg.setColor(.2, .2, .2, 1)
+
+    local padding = 3
+    local padding2x = padding * 2
+
+    -- local text_width = FONT_GLOBAL:getWidth(self.tooltip)
+    -- local text_height = FONT_GLOBAL:getHeight()
+
+    local text_width = self.tooltip_dimensions.x
+    local text_height = self.tooltip_dimensions.y
+
+    local window_w = lg.getDimensions()
+
+    local pos_x = mousePos.x
+    local pos_y = mousePos.y - text_height - padding
+
+    if pos_x + text_width > window_w then
+        pos_x = pos_x - text_width - padding
+    end
+
+    lg.rectangle('fill', pos_x, pos_y, text_width + padding2x, text_height + padding2x)
+    lg.setColor(.3, .3, .3, 1)
+    lg.rectangle('line', pos_x, pos_y, text_width + padding2x, text_height + padding2x)
+
+    lg.setColor(1, 1, 1, 1)
+    lg.print(self.tooltip, pos_x + padding, pos_y + padding)
+
+    lg.setCanvas()
+
+end
+
 -----------------------------------------
 -- 
 -- Button object
@@ -113,7 +166,7 @@ button_params = {action = nil, parameters = {}, hover = false, pressed = false}
 Button = Element:new(button_params)
 
 
-function Button:new(o, inID, inSize, actionFunc, parameters, inSprite)
+function Button:new(o, inID, inSize, actionFunc, parameters, inSprite, inTooltip)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
@@ -132,6 +185,8 @@ function Button:new(o, inID, inSize, actionFunc, parameters, inSprite)
     o.pressed = false
     o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
     o.parameters = parameters or {}
+    o.tooltip = inTooltip or "No tooltip"
+    o:setTooltipDims(FONT_GLOBAL)
     return o
 end
 
@@ -154,7 +209,7 @@ end
 buttonWide_params = {width = 0, label = ''}
 ButtonWide = Button:new(buttonWide_params)
 
-function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameters, inSprite)
+function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameters, inSprite, inTooltip)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
@@ -177,6 +232,8 @@ function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameter
     o.pressed = false
     o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
     o.parameters = parameters or {}
+    o.tooltip = inTooltip or "No tooltip"
+    o:setTooltipDims(FONT_GLOBAL)
     return o
 end
 
@@ -203,7 +260,7 @@ Dropdown = Button:new(dropdown_params)
 
 
 -- This could be deleted and merged to base Element at some point
-function Dropdown:new(o, inID, inSize, inSprite)
+function Dropdown:new(o, inID, inSize, inSprite, inTooltip)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
@@ -219,6 +276,8 @@ function Dropdown:new(o, inID, inSize, inSprite)
     o.sprite = lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512)
     o.content = nil -- Contained frame
     o.parent = nil
+    o.tooltip = inTooltip or "No tooltip"
+    o:setTooltipDims(FONT_GLOBAL)
     return o
 end
 
@@ -268,7 +327,7 @@ function TextBox:new(o, inID, inValueType, initValue, inSize, inLabel, inFont, i
     o.text = initValue or ""
     o.max_length = inLength or -1
     
-    o.valuetype = inValueType or "any" -- 'number', 'string'
+    o.valuetype = inValueType or "any" -- 'number', 'letters', 'string'
     return o
 end
 

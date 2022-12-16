@@ -93,7 +93,7 @@ end
 --- Draw brush outline to UI
 ---@param mPos table
 function Brush:drawOutline(mPos)
-    lg.setCanvas(CANVAS_UI)
+    lg.setCanvas(CANVAS_UI_DYNAMIC)
     lg.setLineWidth(1.5)
     lg.setLineStyle('smooth')
 

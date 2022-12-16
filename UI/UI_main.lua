@@ -29,8 +29,8 @@ function UI:init()
     -----------------------------------------
 
     -- Top level dropdowns
-    dd_filters = Dropdown:new(nil, "afilters_dropdown", button_size, vec(0, 0))
-    dd_drawing = Dropdown:new(nil, "drawing_dropdown", button_size, vec(2, 0))
+    dd_filters = Dropdown:new(nil, "afilters_dropdown", button_size, vec(0, 0), 'Various image processing filters')
+    dd_drawing = Dropdown:new(nil, "drawing_dropdown", button_size, vec(2, 0), 'Vector Painting Tools')
 
     -- Frames under dropdowns
     frame_filters = Frame:new(nil, 'frame_filters', vec(0), FRAME_PADDING, 'left')
@@ -80,7 +80,7 @@ function UI:init()
     -- TODO: File load
     -- TODO: Open save location
 
-    dd_fileops = Dropdown:new(nil, "fileops_dropdown", button_size, vec(4,1))
+    dd_fileops = Dropdown:new(nil, "fileops_dropdown", button_size, vec(4,1), 'This\nis a multiline\ntooltip')
 
     frame_fileops = Frame:new(nil, 'frame_fileops', vec(0), FRAME_PADDING, 'right')
 
@@ -194,11 +194,14 @@ end
 
 function UI:drawFrames()
     ICON_BATCH:clear()
+    lg.setCanvas(CANVAS_UI_BACKGROUND)
+    lg.clear(0,0,0,0)
     lg.setCanvas(CANVAS_UI_STATIC)
     lg.clear(0,0,0,0)
     lg.setCanvas()
+
     for _, frame in pairs(self.frames) do
-        --frame:drawDebug()
+        -- frame:drawDebug()
         frame:draw()
     end
 end

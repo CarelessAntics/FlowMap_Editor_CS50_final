@@ -98,10 +98,11 @@ function deepPrint(tbl)
                 local newstr = helper(v)
                 str = str .. (newstr or 'nil')
             elseif v == nil then
-                str = str .. 'nil' .. ' '
+                str = str .. 'nil'
             else
-                str = str .. tostring(v) .. ' '
+                str = str .. tostring(v)
             end
+            str = str .. ', '
         end
         return str .. " }"
     end

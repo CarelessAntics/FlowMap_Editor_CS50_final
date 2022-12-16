@@ -14,11 +14,10 @@ require "./helpers/vector"
 require "./helpers/helpers"
 require "./objects/brush"
 require "./objects/walker"
-require "./imageprocessing/filters"
-require "./imageprocessing/resize"
-require "./UI/element"
-require "./UI/frame"
-require "./UI/UI_main"
+require "./functionality/filters"
+require "./functionality/fileops"
+-- require "./functionality/resize"
+
 
 -- TODO: Brush 
 -- TODO: UI_main
@@ -93,15 +92,15 @@ IMGDATA_MAIN = nil -- Main image where drawing happens
 CANVAS_IMAGE = nil -- Main canvas where IMGDATA_MAIN is drawn on screen
 screenInit(SIZE_OUT.x, SIZE_OUT.y)
 
-CANVAS_UI = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
+CANVAS_UI_DYNAMIC = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
+CANVAS_UI_BACKGROUND = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 CANVAS_UI_STATIC = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
+CANVAS_UI_OVERLAY = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
 
+-- UI Icons
 ICON_ATLAS = lg.newImage("assets/icons/icon_atlas.png")
 ICON_BATCH = lg.newSpriteBatch(ICON_ATLAS, 50, 'static')
 ICON_OFFSET = 0.07
-
-UI_DATA = li.newImageData(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, "rgba8")
-UI_IMAGE = lg.newImage(UI_DATA)
 
 -- TextBox params
 TEXTBOX_SELECTED = nil
@@ -113,6 +112,19 @@ FONT_GLOBAL:setFilter("nearest", "nearest", 1)
 -- Save location in %appdata%/Roaming/LOVE/
 OUTDIR = "output/"
 OUTFILE = "outfile.png"
+
+HOVER_TIMER = 0
+HOVER_CURRENT = ''
+
+--[[-----------------------------------------
+ 
+ UI MODULES
+ 
+--]]-----------------------------------------
+
+require "./UI/element"
+require "./UI/frame"
+require "./UI/UI_main"
 
 --[[-----------------------------------------
  
@@ -153,9 +165,20 @@ function love.update()
     -- Return mouse position
     mousePos = mouseHandler()
 
-    for _, frame in pairs(UI_main.frames) do
-        if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
+    if HOVER_TIMER > 1 then
+        for _, frame in pairs(UI_main.frames) do
+            if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
+                frame:getHit(mousePos, nil, UI_main, false)
+                goto continue
+            end
         end
+
+        HOVER_TIMER = 0
+        HOVER_CURRENT = ''
+
+        ::continue::
+    else
+        HOVER_TIMER = HOVER_TIMER + lt.getDelta()
     end
 
     --[[
@@ -196,9 +219,6 @@ end
 -- Main draw function
 function love.draw()
     
-    lg.setCanvas(CANVAS_UI)
-    lg.clear(0,0,0,0)
-    lg.setCanvas()
 
     -- Drawing mode
     if mode_DRAW then
@@ -214,9 +234,12 @@ function love.draw()
         --frame:drawDebug()
         frame:draw()
     end]]
-    lg.draw(CANVAS_UI)
+    lg.draw(CANVAS_UI_BACKGROUND)
+    lg.draw(CANVAS_UI_DYNAMIC)
     lg.draw(ICON_BATCH)
     lg.draw(CANVAS_UI_STATIC)
+    lg.draw(CANVAS_UI_OVERLAY)
+    
 
     local scaled_canvas = CANVAS_SCALE * SIZE_OUT
     lg.print("Size: "..SIZE_OUT.x.." x "..SIZE_OUT.y, PADDING.x, PADDING.y + scaled_canvas.y)
@@ -237,6 +260,12 @@ function love.draw()
         lg.setColor(col, col, col)
         lg.circle('fill', i, PADDING.y + 550, 10, 32)
     end]]
+
+    lg.setCanvas(CANVAS_UI_OVERLAY)
+    lg.clear(0,0,0,0)
+    lg.setCanvas(CANVAS_UI_DYNAMIC)
+    lg.clear(0,0,0,0)
+    lg.setCanvas()
 end
 
 
@@ -317,73 +346,6 @@ end
 -- 
 -------------------------------------------
 
---- Save image
-function saveScreen(name_field)
-
-    local outfile = name_field:getValueText() .. '.png'
-
-    --[[local properties_id = 'fileops_save_properties'
-    local properties = UI_main.properties[properties_id].contents
-    local outfile = properties['p_save_filename']:getValueText() .. '.png']]
-
-    if outfile == '.png' or outfile == ' .png' then
-        outfile = OUTFILE
-    end
-
-    if lfs.createDirectory(OUTDIR) then
-        if lfs.getInfo(OUTDIR .. outfile) ~= nil then
-            lfs.newFile(OUTDIR .. outfile)
-        end
-
-        -- local image_out = CANVAS_IMAGE:newImageData()
-        IMGDATA_MAIN:encode("png", OUTDIR .. outfile)
-    end
-end
-
---- load image
----@param filename string
-function loadImage(filename)
-    -- TODO: implement image size change
-    local new_image = li.newImageData(filename)
-    local new_w, new_h = new_image:getDimensions()
-
-    screenInit(new_w, new_h)
-    IMGDATA_MAIN = new_image
-    DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
-end
-
-function newImage(size_button_x, size_button_y)
-    local size_x = size_button_x:getValueNumber()
-    local size_y = size_button_y:getValueNumber() ~= 0 and size_button_y:getValueNumber() or size_x
-
-    screenInit(size_x, size_y)
-end
-
-function resizeImage(size_button_x, size_button_y)
-
-    local new_w = size_button_x:getValueNumber()
-    local new_h = size_button_y:getValueNumber() ~= 0 and size_button_y:getValueNumber() or new_w
-
-    SIZE_OUT = vec(new_w, new_h)
-
-    local old_img = lg.newImage(IMGDATA_MAIN)
-    local format_old = old_img:getFormat()
-    local old_w, old_h = old_img:getDimensions()
-
-    local scale_x = new_w / old_w
-    local scale_y = new_h / old_h
-
-    local temp_canvas = lg.newCanvas(new_w, new_h, {format = format_old})
-    lg.setCanvas(temp_canvas)
-    lg.draw(old_img, 0, 0, 0, scale_x, scale_y)
-    lg.setCanvas()
-
-    local new_img = temp_canvas:newImageData(format)
-    IMGDATA_MAIN = new_img
-
-    initImage()
-end
-
 function clearWalkers()
     WALKERS = {}
 end
@@ -404,7 +366,7 @@ end
 --- Manages scaling and positioning of canvases when window size changes
 function windowManager()
     local size_x, size_y = lg.getDimensions()
-    local ui_x, ui_y = CANVAS_UI:getDimensions()
+    local ui_x, ui_y = CANVAS_UI_DYNAMIC:getDimensions()
     local window_size = vec(size_x, size_y)
 
     -- Refresh UI_main layer if dimension mismatch between it and window
@@ -417,16 +379,17 @@ function windowManager()
         for _, frame in pairs(UI_main.frames) do
             frame:updateAbsolutePos()
         end
+
+        CANVAS_UI_DYNAMIC = lg.newCanvas(size_x, size_y)
+        CANVAS_UI_BACKGROUND = lg.newCanvas(size_x, size_y)
+        CANVAS_UI_STATIC = lg.newCanvas(size_x, size_y)
+        CANVAS_UI_OVERLAY = lg.newCanvas(size_x, size_y)
                 
         ICON_BATCH:clear()
         for _, frame in pairs(UI_main.frames) do
             frame:draw()
         end
         
-
-        CANVAS_UI = lg.newCanvas(size_x, size_y)
-        CANVAS_UI_STATIC = lg.newCanvas(size_x, size_y)
-        UI_DATA = li.newImageData(size_x, size_y, 'rgba8')
     end
 
     local scales = (window_size - (PADDING_min * 2)) / SIZE_OUT

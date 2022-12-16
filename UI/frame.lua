@@ -166,7 +166,18 @@ function Frame:getHit(mPos, mButton, UI_ref, key_pressed)
         local hovering = true
         if isHitRect(mPos, abs, abs + element.size) then
 
-            if not key_pressed then
+            -- if no mouse button specified, hover detected
+            if mButton == nil then
+                if HOVER_CURRENT == element.id then
+                    element:drawTooltip(mPos)
+                else
+                    HOVER_CURRENT = element.id
+                    HOVER_TIMER = 0
+                end
+                return
+            end
+
+            if key_pressed then
                 if mButton == 1 then
 
                     -- TODO: think of a way to make button actions better
@@ -198,6 +209,26 @@ end
 
 -- Draw Frame elements on screen
 function Frame:draw()
+
+    -- Frame background
+    lg.setCanvas(CANVAS_UI_BACKGROUND)
+    lg.setColor(.3, .3, .3, 1)
+
+    local padding = 3
+    local padding2x = padding * 2
+
+    local pos_x = self.bBox[1].x - padding
+    local pos_y = self.bBox[1].y - padding
+
+    local frame_width = self.dimensions.x
+    local frame_height = self.dimensions.y
+
+    lg.rectangle('fill', pos_x, pos_y, frame_width + padding, frame_height + padding)
+    lg.setColor(.4, .4, .4, 1)
+    lg.rectangle('line', pos_x, pos_y, frame_width + padding, frame_height + padding)
+
+    lg.setCanvas()
+
     for _, element in pairs(self.contents) do
 
         local abs = self:absolute(element.pos)
@@ -212,7 +243,6 @@ function Frame:draw()
 
         local scales = element.size / vec(icon_size)
 
-        lg.setColor(1, 1, 1, 1)
         if element.type == 'button_wide' then
             scales = vec(element.size.y) / vec(icon_size)
             ICON_BATCH:add(element.sprite[1], abs.x, abs.y, 0, scales.x, scales.y)
@@ -221,6 +251,7 @@ function Frame:draw()
 
             local font_offset = FONT_GLOBAL:getHeight()
             lg.setCanvas(CANVAS_UI_STATIC)
+            lg.setColor(1, 1, 1, 1)
             if not element.pressed then
                 lg.print(element.label, abs.x + font_offset + (element.size.y * ICON_OFFSET / 2), abs.y + (element.size.y / 2) - (font_offset / 2) - (element.size.y * ICON_OFFSET / 2))
             else
