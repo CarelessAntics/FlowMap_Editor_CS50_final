@@ -1,8 +1,13 @@
 --- Save image
 function saveScreen(name_field)
 
-    local outfile = name_field:getValueText() .. '.png'
-    getPath(outfile)
+    local savepath = name_field:getValueText() .. '.png'
+    local dirs = getPath(savepath)
+    local outfile = dirs[#dirs]
+    local outpath = OUTDIR .. string.gsub(savepath, outfile, "")
+
+    print(outfile)
+    print(outpath)
 
     --[[local properties_id = 'fileops_save_properties'
     local properties = UI_main.properties[properties_id].contents
@@ -12,13 +17,13 @@ function saveScreen(name_field)
         outfile = OUTFILE
     end
 
-    if lfs.createDirectory(OUTDIR) then
-        if lfs.getInfo(OUTDIR .. outfile) ~= nil then
-            lfs.newFile(OUTDIR .. outfile)
+    if lfs.createDirectory(outpath) then
+        if lfs.getInfo(outpath .. outfile) ~= nil then
+            lfs.newFile(outpath .. outfile)
         end
 
         -- local image_out = CANVAS_IMAGE:newImageData()
-        IMGDATA_MAIN:encode("png", OUTDIR .. outfile)
+        IMGDATA_MAIN:encode("png", outpath .. outfile)
     end
 end
 
@@ -27,7 +32,7 @@ function getPath(filepath)
     for str in string.gmatch(filepath, '([^/]+)') do
         table.insert(directories, str)
     end
-    deepPrint(directories)
+    return directories
 end
 
 --- load image

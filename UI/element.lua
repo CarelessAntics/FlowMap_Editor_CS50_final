@@ -10,6 +10,8 @@ Element = {  pos = vec(0), -- Position will be top-left corner
             tooltip = "",
             tooltip_dimensions = vec(0),
             subframe = nil,
+            alignment = nil, -- Alignment inside parent frame grid
+            grid_location = vec(0), -- parent frame grid coords
             sprite = nil
         }
 
@@ -18,6 +20,9 @@ function Element:new(o)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
+
+    o.alignment = nil -- Alignment inside parent frame grid
+    o.grid_location = vec(0) -- parent frame grid coords
 
     return o
 end
@@ -99,7 +104,7 @@ function Element:setProperties(frameId, alignment, UI_ref, ... )
             newProperty.text = "Something Went Wrong"
         end
 
-        self.subframe:addElement(newProperty, 'bottom')
+        self.subframe:addElement(newProperty, 'bottom', UI_ref)
     end
     UI_ref.properties[frameId] = self.subframe
 end
@@ -219,7 +224,7 @@ function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameter
     -- Initialize instance params
     o.pos = vec(0)
     o.width = inWidth or 0
-    o.size = vec((inSize * 2) + o.width, inSize)
+    o.size = vec((inSize*2) + o.width, inSize)
     o.label = inLabel or 'noLabel'
     o.id = inID
     o.type = 'button_wide'

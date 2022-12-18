@@ -81,7 +81,7 @@ end
 
 -- A table concatenation function which may or may not work as intended
 function table_concat(a, b)
-    local out = {table.unpack(a)}
+    local out = {unpack(a)}
     for _, v in pairs(b) do
         table.insert(out, v)
     end
@@ -117,4 +117,13 @@ function contains(value, table)
     end
 
     return false
+end
+
+function splitString(str_original, splitter)
+    local t = {}
+    for str in string.gmatch(str_original, '([^'.. splitter ..']+)') do
+        table.insert(t, str)
+    end
+
+    return t
 end

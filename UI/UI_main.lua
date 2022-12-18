@@ -2,7 +2,7 @@ FRAME_PADDING = 1
 
 
 -- Main UI structure
-UI = {content = {}, frames = {}, properties = {}}
+UI = {content = {}, frames = {}, properties = {}, elements = {}}
 
 
 function UI:new(o)
@@ -45,8 +45,8 @@ function UI:init()
                             {label = "Blur Samples", id = "p_blur_samples", value = 4, size = vec(4, 1)})
 
     -- Add Elements to frame_filters
-    frame_filters:addElement(btn_normalize, 'bottom')
-    frame_filters:addElement(btn_blur, 'bottom')
+    frame_filters:addElement(btn_normalize, 'bottom', self)
+    frame_filters:addElement(btn_blur, 'bottom', self)
 
     -- Elements for dd_drawing
     btn_mode_draw = Button:new(nil, "filter_normalize2", button_size, function() mode_DRAW = true mode_RANDOMWALK = false end, vec(6, 0))
@@ -63,10 +63,10 @@ function UI:init()
     --textbox_test2 = TextBox:new(nil, "text_test2", 'number', vec(4, 1), "labeladdasdsd")
 
     -- Add Elements to frame_drawing
-    frame_drawing:addElement(btn_mode_walker, 'bottom')
-    frame_drawing:addElement(btn_mode_draw, 'bottom')
-    frame_drawing:addElement(btn_wide_test, 'bottom')
-    frame_drawing:addElement(textbox_test, 'bottom')
+    frame_drawing:addElement(btn_mode_walker, 'bottom', self)
+    frame_drawing:addElement(btn_mode_draw, 'bottom', self)
+    frame_drawing:addElement(btn_wide_test, 'bottom', self)
+    frame_drawing:addElement(textbox_test, 'bottom', self)
     --frame_drawing:addElement(textbox_test2, 'bottom')
 
     -- Insert frames to dropdowns
@@ -101,25 +101,27 @@ function UI:init()
     txt_newsize_y = TextBox:new(nil, "text_new_y", 'number', tostring(SIZE_OUT.y), vec(5, 1), "Size Y:", nil, 4)
     btn_new = ButtonWide:new(nil, 'fileops_new', 40, 60, 'New Image', newImage, {txt_newsize_x, txt_newsize_y}, vec(0,2))
 
-    frame_new:addElement(txt_newsize_x, 'bottom')
-    frame_new:addElement(txt_newsize_y, 'bottom')
-    frame_new:addElement(btn_new, 'bottom')
+    frame_new:addElement(txt_newsize_x, 'bottom', self)
+    frame_new:addElement(txt_newsize_y, 'top right', self)
+    frame_new:addElement(btn_new, 'bottom', self)
 
     txt_resize_x = TextBox:new(nil, "text_resize_x", 'number', tostring(SIZE_OUT.x), vec(5, 1), "Size X:", nil, 4)
     txt_resize_y = TextBox:new(nil, "text_resize_y", 'number', tostring(SIZE_OUT.y), vec(5, 1), "Size Y:", nil, 4)
     btn_resize = ButtonWide:new(nil, 'fileops_resize', 40, 60, 'Resize Image', resizeImage, {txt_resize_x, txt_resize_y}, vec(0,2))
 
-    frame_resize:addElement(txt_resize_x, 'bottom')
-    frame_resize:addElement(txt_resize_y, 'bottom')
-    frame_resize:addElement(btn_resize, 'bottom')
+    frame_resize:addElement(txt_resize_x, 'bottom', self)
+    frame_resize:addElement(txt_resize_y, 'top right', self)
+    frame_resize:addElement(btn_resize, 'bottom', self)
 
     txt_save = TextBox:new(nil, "text_save", 'string', nil, vec(10, 1), "File Name")
     btn_save = ButtonWide:new(nil, 'fileops_save', 40, 10, 'Save', saveScreen, {txt_save}, vec(0,2))
 
-    frame_save:addElement(txt_save, 'bottom')
-    frame_save:addElement(btn_save, 'bottom')
+    frame_save:addElement(txt_save, 'bottom', self)
+    frame_save:addElement(btn_save, 'bottom', self)
 
     self:refreshFileList(frame_open, button_size)
+    -- This is a bit hacky
+    self.elements["fileops_open_refresh"]:setPressed(false)
 
     dd_new:setContent(frame_new)
     dd_open:setContent(frame_open)
@@ -129,10 +131,10 @@ function UI:init()
     --[[btn_open:setProperties('fileops_open_properties', 'right', self, 
                             {label="File Name", id="p_open_filename", value="", size=vec(10, 1)})]]
 
-    frame_fileops:addElement(dd_new, 'bottom')
-    frame_fileops:addElement(dd_save, 'bottom')
-    frame_fileops:addElement(dd_open, 'bottom')
-    frame_fileops:addElement(dd_resize, 'bottom')
+    frame_fileops:addElement(dd_new, 'bottom', self)
+    frame_fileops:addElement(dd_save, 'bottom', self)
+    frame_fileops:addElement(dd_open, 'bottom', self)
+    frame_fileops:addElement(dd_resize, 'bottom', self)
 
     dd_fileops:setContent(frame_fileops)
 
@@ -144,11 +146,11 @@ function UI:init()
     sidebar_left = Frame:new(nil, 'f_side_left', vec(50, 0), FRAME_PADDING, 'left')
 
     self.content[1] = sidebar_right
-    self.content[1]:addElement(dd_filters, 'bottom')
-    self.content[1]:addElement(dd_drawing, 'bottom')
+    self.content[1]:addElement(dd_filters, 'bottom', self)
+    self.content[1]:addElement(dd_drawing, 'bottom', self)
 
     self.content[2] = sidebar_left
-    self.content[2]:addElement(dd_fileops, 'bottom')
+    self.content[2]:addElement(dd_fileops, 'bottom', self)
 
     --self.frames[#self.frames + 1] = filters_frame
     --self.frames[#self.frames + 1] = drawing_frame
@@ -161,34 +163,52 @@ function UI:refreshFileList(parent_frame, button_size)
 
     -- Clear old open file dialogue. Create a refresh button and initialise the frame with it
     parent_frame:clear()
-    local btn_refresh = Button:new(nil, "fileops_open_refresh", button_size, self.refreshFileList, {self, parent_frame, button_size}, vec(4, 2))
-    parent_frame:addElement(btn_refresh, 'bottom')
-
     -- Create a list of openable files
-    local open_btns = self:createFileListButtons(40)
+    local open_btns = self:createFileListButtons(OUTDIR, 40)
+    local btn_refresh = Button:new(nil, "fileops_open_refresh", button_size, self.refreshFileList, {self, parent_frame, button_size}, vec(4, 2))
+    local btn_folder = ButtonWide:new(nil, "fileops_open_folder", button_size, 130, 'Open Save Location', function() os.execute("start " .. lfs.getSaveDirectory() .. '/' .. OUTDIR) end, {}, vec(0, 2))
+
+    parent_frame:addElement(btn_refresh, 'bottom', self)
+
+    -- deepPrint(open_btns)
     for _, btn in pairs(open_btns) do
-        parent_frame:addElement(btn, 'bottom')
+        parent_frame:addElement(btn, 'bottom', self)
     end
+    btn_refresh:setPressed(true)
+
+    parent_frame:addElement(btn_folder, 'top right', self)
 
 end
 
 
-function UI:createFileListButtons(size)
+function UI:createFileListButtons(savepath, size, btn_count)
     local btns = {}
-    local max_length = 15
-    local savepath = OUTDIR
+    local max_length = 30
     local files = lfs.getDirectoryItems(savepath)
     local char_length = FONT_GLOBAL:getHeight() / 3
+    btn_count = btn_count or 0
 
     for i, filename in ipairs(files) do
-        local label = filename
-        if string.len(filename) > max_length then
-            label = string.sub(filename, 0, max_length - 3) .. '...'
+        local filepath = savepath .. filename
+
+        if lfs.getInfo(filepath).type == 'directory' then
+            local new_btns, new_count = self:createFileListButtons(filepath .. '/', size, btn_count)
+            btns = table_concat(btns, new_btns)
+            btn_count = btn_count + new_count
+
+        else
+            local label = string.gsub(filepath, OUTDIR, '')
+            local path_length = string.len(filepath)
+            btn_count = btn_count + 1
+            
+            if path_length > max_length then
+                label = '...' .. string.sub(filepath, path_length - max_length + 3, path_length)
+            end
+           table.insert(btns, ButtonWide:new(nil, "open_file_".. btn_count, size, max_length * char_length, label, loadImage, {filepath}, vec(0, 2)))
         end
-        btns[i] = ButtonWide:new(nil, "open_file_"..i, size, max_length * 5, label, loadImage, {OUTDIR .. filename}, vec(0, 2))
     end
 
-    return btns
+    return btns, btn_count
 end
 
 
@@ -201,7 +221,7 @@ function UI:drawFrames()
     lg.setCanvas()
 
     for _, frame in pairs(self.frames) do
-        -- frame:drawDebug()
+        --frame:drawDebug()
         frame:draw()
     end
 end

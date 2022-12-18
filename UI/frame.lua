@@ -7,6 +7,7 @@ Frame = {   contents = {},
             pos = vec(0), -- Position offset relative to window and alignment
             bBox = {vec(0), vec(0)}, -- Frame bounding box absolute position values
             dimensions = vec(0),
+            grid_dimensions = vec(0),
             padding = 0,
             align = 'right',
             state = true,
@@ -53,6 +54,7 @@ function Frame:new(o, id, inPos, padding, alignment)
     o.state = true
     o.current_dropdown = nil
     o.parent = nil
+    o.grid_dimensions = vec(0)
     o.id = id or 'none'
 
     return o
@@ -69,30 +71,156 @@ function Frame:relative(v)
 end
 
 
--- TODO: Add an element into frame and position it accordingly
-function Frame:addElement(element, placement)
-    self.contents[element.id] = element
-    self.contents[element.id].parent = self
+-- Add an element into frame and position it accordingly
+function Frame:addElement(element, placement, UI_ref)
+    UI_ref.elements[element.id] = element
+    element.pos = self:relative(vCopy(self.bBox[1] + vec(self.padding)))
+    element.parent = self
+    element.grid_location = vec(-1)
 
-    if self.contents[element.id].subframe ~= nil then
-        self.contents[element.id].subframe.parent = self
+    if element.subframe ~= nil then
+        element.subframe.parent = self
     end
 
-    local padding_total = self.padding * 2
+    local padding2x = self.padding * 2
+    placement = placement or 'bottom left'
+    
+    local placements = splitString(placement, ' ')
+    placements[2] = placements[2] or 'left'
 
-    if placement == 'bottom' then
-        -- Make the element position relative to frame
-        self.contents[element.id].pos = self:relative(vec(self.bBox[1].x + self.padding, self.bBox[2].y + self.padding))
+    placement = table.concat(placements, ' ')
 
-        -- Resize the bounding box to contain new element
-        if self.dimensions.x < element.size.x + padding_total then
-            self.bBox[2].x = self.bBox[2].x + ((element.size.x + padding_total) - self.dimensions.x)
+    local column_size_x = 0
+    local column_size_y = 0
+    local column_count = 0
+    local row_count = 0
+    local nudge = 0
+
+    -- Place item in the frame based on instructions
+    if placement == 'top left' then
+        -- Set element's position relative to frame
+        element.pos = self:relative(vec(self.bBox[1].x + self.padding, self.bBox[1].y + self.padding))
+        element.grid_location.x = 0
+        element.grid_location.y = 0
+
+        column_size_x = element.size.x + padding2x
+        column_size_y = element.size.y + padding2x
+
+        -- Go through already inserted elements. Since inputting on the left side, nudge every other element in the same row 1 space to the right
+        -- Same process for when inserting from the top
+        -- At the same time, sum up the current row's/column's size, and increment the count of elements on current row/column
+        for _, other in pairs(self.contents) do
+            if other.grid_location.x == element.grid_location.x then
+                other.pos.y = other.pos.y + element.size.y
+                other.grid_location.y = other.grid_location.y + 1
+                column_size_y = column_size_y + other.size.y + self.padding
+                column_count = column_count + 1
+            end
+
+            if other.grid_location.y == element.grid_location.y then
+                other.pos.x = other.pos.x + element.size.x
+                other.grid_location.x = other.grid_location.x + 1
+                column_size_x = column_size_y + other.size.x + self.padding
+                row_count = row_count + 1
+            end
         end
-        self.bBox[2].y = self.bBox[2].y + element.size.y + padding_total
+
+    elseif placement == 'bottom left' then
+
+        element.pos = self:relative(vec(self.bBox[1].x + self.padding, self.bBox[2].y + self.padding))
+        element.grid_location.x = 0
+        element.grid_location.y = self.grid_dimensions.y
+
+        column_size_x = element.size.x + padding2x
+        column_size_y = element.size.y + padding2x
+
+        for _, other in pairs(self.contents) do
+            if other.grid_location.x == element.grid_location.x then
+                column_size_y = column_size_y + other.size.y + self.padding
+                column_count = column_count + 1
+            end
+
+            if other.grid_location.y == element.grid_location.y then
+                other.pos.x = other.pos.x + element.size.x
+                other.grid_location.x = other.grid_location.x + 1
+                column_size_x = column_size_y + other.size.x + self.padding
+                row_count = row_count + 1
+            end
+        end
+
+    elseif placement == 'top right' then
+
+        element.pos = self:relative(vec(self.bBox[2].x - element.size.x - padding2x, self.bBox[1].y + self.padding))
+        element.grid_location.x = self.grid_dimensions.x
+        element.grid_location.y = 0
+
+        for _, other in pairs(self.contents) do
+            if other.grid_location.x == element.grid_location.x then
+                other.pos.y = other.pos.y + element.size.y
+                other.grid_location.y = other.grid_location.y + 1
+                column_size_y = column_size_y + other.size.y + self.padding
+                column_count = column_count + 1
+            end
+
+            if other.grid_location.y == element.grid_location.y then
+                column_size_x = column_size_x + other.size.x + self.padding
+                row_count = row_count + 1
+            end
+        end
+
+        if element.pos.x < column_size_x then
+            nudge = (column_size_x - element.pos.x) + padding2x
+            element.pos.x = element.pos.x + nudge
+        end
+
+        column_size_x = column_size_x + element.size.x + padding2x
+        column_size_y = column_size_y + element.size.y + padding2x
+
+    elseif placement == 'bottom right' then
+        
+        element.pos = self:relative(vec(self.bBox[2].x - element.size.x - padding2x, self.bBox[1].y + self.padding))
+        element.grid_location.x = self.grid_dimensions.x
+        element.grid_location.y = 0
+
+        for _, other in pairs(self.contents) do
+            if other.grid_location.x == element.grid_location.x then
+                column_size_y = column_size_y + other.size.y + self.padding
+                column_count = column_count + 1
+            end
+
+            if other.grid_location.y == element.grid_location.y then
+                column_size_x = column_size_x + other.size.x + self.padding
+                row_count = row_count + 1
+                
+            end
+        end
+
+        if element.pos.x < column_size_x then
+            nudge = element.pos.x + (column_size_x - element.pos.x) + padding2x
+            element.pos.x = element.pos.x + nudge
+        end
+
+        column_size_x = column_size_x + element.size.x + padding2x
+        column_size_y = column_size_y + element.size.y + padding2x
     end
 
-    local dims = self.bBox[2] - self.bBox[1]
-    self.dimensions = vec(math.abs(dims.x), math.abs(dims.y))
+    -- Update the grid maximums. Needed when inserting elements from left or bottom
+    self.grid_dimensions.x = math.max(self.grid_dimensions.x, row_count + 1)
+    self.grid_dimensions.y = math.max(self.grid_dimensions.y, column_count + 1)
+
+    -- Resize the bounding box to contain new element
+    if self.dimensions.x < column_size_x + nudge then
+        local diff = column_size_x - self:relative(self.bBox[2]).x
+        self.bBox[2].x = self.bBox[2].x + diff
+    end
+
+    if self.dimensions.y < column_size_y then
+        self.bBox[2].y = self.bBox[2].y + (element.size.y + padding2x)
+    end
+            
+    self.contents[element.id] = element
+    local new_dims = self.bBox[2] - self.bBox[1]
+    self.dimensions = vec(math.abs(new_dims.x), math.abs(new_dims.y))
 
     self:updateAbsolutePos(0,0)
 end
@@ -102,6 +230,7 @@ function Frame:clear()
 
     self.contents = {}
     self.dimensions = vec(0)
+    self.grid_dimensions = vec(0)
     self.bBox = {self.bBox[1], vCopy(self.bBox[1])}
 
 end

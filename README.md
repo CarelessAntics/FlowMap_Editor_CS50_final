@@ -30,10 +30,10 @@ Force all vectors to unit vectors (length = 1)
 
 ### File/Document Operations
 #### Saving
-LÖVE isn't exactly designed for this type of usage, so all images are saved in %appdata%/LOVE/VectorMapPainter/output/. 
+LÖVE isn't exactly designed for this type of usage, so all images are saved in %appdata%/LOVE/VectorMapPainter/output/. You can save in subdirectories by including the path in the save name (e.g. "subdirectory/filename" will save filename.png into %appdata%/LOVE/VectorMapPainter/output/subdirectory/)
 
 #### Loading
-The vector map painter can load in any image in the root folder specified above, as long as the format is supported by LÖVE (png, jpg). Some png files might use compression which messes things up, but resaving them should resolve any issues.
+The vector map painter can load in any image in the root folder specified above, as long as the format is supported by LÖVE (png, jpg). Some png files might use compression which messes things up, but resaving them should resolve any issues. Due to the incredibly custom nature of the UI system, the file list menu will go outside window borders when there are enough files, and there is no scrolling implemented. Just a heads up
 
 #### Resizing
 Images can be resized to any 4-digit size, though powers of 2 are recommended. Large sizes also slow down performance
