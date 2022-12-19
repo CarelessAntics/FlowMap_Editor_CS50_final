@@ -41,12 +41,22 @@ function vRot(v, a)
     return vec(x, y)
 end
 
+-- Return angle in radians between 2 vectors
+function vAngle(a, b)
+    local angle = math.atan2(a.y, a.x) - math.atan2(b.y, b.x)
+    return angle or 0
+end
+
+-- Return angle between vector and a reference angle, which is hard coded to (0, 1)
+function vSetAngle(direction)
+    local angle = vAngle(direction, vec(0,1))
+    return angle
+end
 
 -- Fast 90degree rotation, swap coords and negate other
 function vRot_90Deg(v)
     return vec(v.y, -v.x)
 end
-
 
 -- Dot product
 function vDot(a, b)

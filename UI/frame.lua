@@ -178,7 +178,7 @@ function Frame:addElement(element, placement, UI_ref)
 
     elseif placement == 'bottom right' then
         
-        element.pos = self:relative(vec(self.bBox[2].x - element.size.x - padding2x, self.bBox[1].y + self.padding))
+        element.pos = self:relative(vec(self.bBox[2].x - element.size.x - padding2x, self.bBox[2].y + self.padding))
         element.grid_location.x = self.grid_dimensions.x
         element.grid_location.y = 0
 
@@ -224,6 +224,71 @@ function Frame:addElement(element, placement, UI_ref)
 
     self:updateAbsolutePos(0,0)
 end
+
+
+function Frame:addElementToGrid(element, gridPos, UI_ref)
+    UI_ref.elements[element.id] = element
+    element.pos = self:relative(vCopy(self.bBox[1] + vec(self.padding)))
+    element.parent = self
+    element.grid_location = gridPos
+
+    if element.subframe ~= nil then
+        element.subframe.parent = self
+    end
+
+    local padding2x = self.padding * 2
+    local column_size_x = 0
+    local column_size_y = 0
+
+    self.grid_dimensions.x = math.max(self.grid_dimensions.x, gridPos.x)
+    self.grid_dimensions.y = math.max(self.grid_dimensions.y, gridPos.y)
+
+    for _, other in pairs(self.contents) do
+        if other.grid_location.x == gridPos.x then
+            if other.grid_location.y < gridPos.y then
+                column_size_y = column_size_y + other.size.y + self.padding
+            elseif other.grid_location.y > gridPos.y then
+                other.pos.y = other.pos.y + element.size.y + self.padding
+            else
+                print("CELL OCCUPIED")
+            end
+        end
+
+        if other.grid_location.y == gridPos.y then
+            if other.grid_location.x < gridPos.x then
+                column_size_x = column_size_x + other.size.x + self.padding
+            elseif other.grid_location.x > gridPos.x then
+                other.pos.x = other.pos.x + element.size.x + self.padding
+            else
+                print("CELL OCCUPIED")
+            end   
+        end
+    end
+
+    element.pos = vec(column_size_x, column_size_y)
+
+    column_size_x = column_size_x + element.size.x + self.padding
+    column_size_y = column_size_y + element.size.y + self.padding
+
+    -- Resize the bounding box to contain new element
+    if self.dimensions.x < column_size_x then
+        local diff = column_size_x - self:relative(self.bBox[2]).x
+        self.bBox[2].x = self.bBox[2].x + diff
+    end
+
+    if self.dimensions.y < column_size_y then
+        self.bBox[2].y = self.bBox[2].y + (element.size.y + padding2x)
+    end
+            
+    self.contents[element.id] = element
+    local new_dims = self.bBox[2] - self.bBox[1]
+    self.dimensions = vec(math.abs(new_dims.x), math.abs(new_dims.y))
+
+    self:updateAbsolutePos(0,0)
+
+
+end
+
 
 
 function Frame:clear()
@@ -315,6 +380,9 @@ function Frame:getHit(mPos, mButton, UI_ref, key_pressed)
             
                     elseif element.type == 'dropdown' then
                         element:toggleSubFrame()
+
+                    elseif element.type == 'checkbox' then
+                        element:toggleCheckbox(unpack(element.parameters))
             
                     elseif element.type == 'textbox' then
                         selectTextBox(element)
@@ -361,8 +429,6 @@ function Frame:draw()
     for _, element in pairs(self.contents) do
 
         local abs = self:absolute(element.pos)
-        local icon_size = 64
-        local dd_tri = lg.newQuad(7 * icon_size, 7 * icon_size, icon_size, icon_size, 512, 512)
         
         -- TextBox doesn't have graphics, so skip the rest of the loop
         if element.type == 'textbox' then
@@ -370,34 +436,48 @@ function Frame:draw()
             goto continue
         end
 
-        local scales = element.size / vec(icon_size)
+        local icon_size = element.icon_set.size_icon
+        local atlas_size = element.icon_set.size_atlas
+        local dd_tri = lg.newQuad(7 * icon_size, 7 * icon_size, icon_size, icon_size, atlas_size, atlas_size)
+
+        local scales
+        if element.type == 'button_wide' or 'CheckBox' then
+            scales = vec(element.size.y) / vec(icon_size)
+        else
+            scales = element.size / vec(icon_size)
+        end
 
         if element.type == 'button_wide' then
-            scales = vec(element.size.y) / vec(icon_size)
-            ICON_BATCH:add(element.sprite[1], abs.x, abs.y, 0, scales.x, scales.y)
-            ICON_BATCH:add(element.sprite[2], abs.x + element.size.y, abs.y, 0, scales.x + element.width, scales.y)
-            ICON_BATCH:add(element.sprite[3], abs.x + element.size.y + element.width, abs.y, 0, scales.x, scales.y)
+            element.icon_set.batch:add(element.sprite[1], abs.x, abs.y, 0, scales.x, scales.y)
+            element.icon_set.batch:add(element.sprite[2], abs.x + element.size.y, abs.y, 0, scales.x + element.width, scales.y)
+            element.icon_set.batch:add(element.sprite[3], abs.x + element.size.y + element.width, abs.y, 0, scales.x, scales.y)
 
+            local icon_offset = element.icon_set.offset
             local font_offset = FONT_GLOBAL:getHeight()
+
             lg.setCanvas(CANVAS_UI_STATIC)
             lg.setColor(1, 1, 1, 1)
             if not element.pressed then
-                lg.print(element.label, abs.x + font_offset + (element.size.y * ICON_OFFSET / 2), abs.y + (element.size.y / 2) - (font_offset / 2) - (element.size.y * ICON_OFFSET / 2))
+                lg.print(element.label, abs.x + font_offset + (element.size.y * icon_offset / 2), abs.y + (element.size.y / 2) - (font_offset / 2) - (element.size.y * icon_offset / 2))
             else
-                lg.print(element.label, abs.x + font_offset - (element.size.y * ICON_OFFSET / 2), abs.y + (element.size.y / 2) - (font_offset / 2) + (element.size.y * ICON_OFFSET / 2))
+                lg.print(element.label, abs.x + font_offset - (element.size.y * icon_offset / 2), abs.y + (element.size.y / 2) - (font_offset / 2) + (element.size.y * icon_offset / 2))
             end
             lg.setCanvas()
         else
-            ICON_BATCH:add(element.sprite, abs.x, abs.y, 0, scales.x, scales.y)
+            element.icon_set.batch:add(element.sprite, abs.x, abs.y, 0, scales.x, scales.y)
+        end
+
+        if element.type == 'checkbox' then
+            element:draw()
         end
 
         -- In case of a dropdown, add in a small triangle
         if element.type == 'dropdown' then
-            ICON_BATCH:add(dd_tri, abs.x, abs.y, 0, scales.x, scales.y)
+            element.icon_set.batch:add(dd_tri, abs.x, abs.y, 0, scales.x, scales.y)
         end
 
         -- Draw dropdown contents
-        if element.state then
+        if element.state and element.subframe ~= nil then
             element.subframe:draw()
         end
         

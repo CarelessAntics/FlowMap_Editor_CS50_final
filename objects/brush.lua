@@ -7,7 +7,9 @@ Brush = {
     active = false,
     erasing = false,
     drawTime = 0,
-    alpha = li.newImageData("assets/alphas/1.png"),
+    alpha_original = li.newImageData("assets/alphas/1.png"),
+    alpha = nil,
+    alpha_angle = 0,
     size = nil,
     lazy_size = nil,
     hardness = 0,
@@ -33,13 +35,14 @@ function Brush:new(o, inPos, inSize)
     o.size = 50
     o.lazy_size = 100
     o.alpha_transp = 1
+    o.alpha = li.newImageData("assets/alphas/1.png")
 
     return o
 end
 
 -- Get values from properties
 function Brush:updateFromProperties(UI_ref)
-    local properties_id = 'f_brush_properties'
+    local properties_id = 'brush_drawing_properties'
     --print(UI_ref.properties)
     local properties = UI_ref.properties[properties_id].contents
 
@@ -54,7 +57,54 @@ function Brush:updateFromProperties(UI_ref)
     self.alpha_transp = properties['p_brush_alpha_transp']:getValueNumber()
 end
 
+function Brush.updateAlpha(brush, alpha_id)
+    brush.alpha_original = li.newImageData("assets/alphas/".. alpha_id ..".png")
+    brush.alpha = li.newImageData("assets/alphas/".. alpha_id ..".png")
+end
 
+function Brush:alignAlpha()
+
+    --local abs_w, abs_h = lw.getDimensions()
+    local w, h = self.alpha:getDimensions()
+    local w_half = w/2
+    local h_half = h/2
+    local canvas = lg.newCanvas(w, h)
+    local alpha = lg.newImage(self.alpha_original)
+    local angle = vSetAngle(self.dir)
+    --print(angle)
+    --local angle = vSetAngle(self.dir)
+    --local angle = 0
+
+    canvas:renderTo( function()
+        lg.setColor(1, 1, 1, 1)
+        lg.draw(alpha, w_half, h_half, angle, 1, 1, w_half, h_half) end
+    )
+
+    self.alpha = canvas:newImageData()
+    
+end
+
+function Brush:rotateAlpha()
+
+    --local abs_w, abs_h = lw.getDimensions()
+    local w, h = self.alpha:getDimensions()
+    local w_half = w/2
+    local h_half = h/2
+    local canvas = lg.newCanvas(w, h)
+    local alpha = lg.newImage(self.alpha_original)
+    self.alpha_angle = self.alpha_angle + .1
+    --print(angle)
+    --local angle = vSetAngle(self.dir)
+    --local angle = 0
+
+    canvas:renderTo( function()
+        lg.setColor(1, 1, 1, 1)
+        lg.draw(alpha, w_half, h_half, self.alpha_angle, 1, 1, w_half, h_half) end
+    )
+
+    self.alpha = canvas:newImageData()
+    
+end
 
 -- Regular movement. Looks kind of shitty so probably won't use it ever
 function Brush:moveTo(mPos)
@@ -86,6 +136,13 @@ function Brush:moveToLazy(mPos)
             self.pos = self.pos + normalize(mouse_vec) * math.min(mouse_dist - self.lazy_size)
         end
         self.dir = normalize(mouse_vec)
+
+        if BRUSH_ALIGN.value then
+            self:alignAlpha()
+        end
+        if BRUSH_ROTATE.value then
+            self:rotateAlpha()
+        end
     end
 end
 
@@ -152,6 +209,82 @@ end
 ---@param draw_size number 
 ---@param col table
 function Brush:drawToImgData(inVector, draw_size, col, mode)
+
+    -- Map pixel colors using image alpha
+    local function pixelFunctionAlphaDraw(x, y, r, g, b, a)
+
+        -- Convert from global xy to local alpha xy
+        local alpha_x = ((x - PIXEL_INPUT_CORNER.x) / PIXEL_INPUT_DIMS.x) * PIXEL_INPUT_ALPHADIMS.x
+        local alpha_y = ((y - PIXEL_INPUT_CORNER.y) / PIXEL_INPUT_DIMS.y) * PIXEL_INPUT_ALPHADIMS.y
+
+        -- If alpha pixel OOB, return 0, otherwise return pixel value from image
+        local brush_alpha = 0
+        if (alpha_x > 0 and alpha_y > 0) and (alpha_x <= PIXEL_INPUT_ALPHADIMS.x and alpha_y <= PIXEL_INPUT_ALPHADIMS.x) then
+            brush_alpha = self.alpha:getPixel(alpha_x, alpha_y)
+        end
+
+        -- Smoothstep according to brush hardness value
+        brush_alpha = smoothStep(0, 1 - self.hardness, brush_alpha)
+
+        local new_r = PIXEL_INPUT_COL.r
+        local new_g = PIXEL_INPUT_COL.g
+        local new_b = PIXEL_INPUT_COL.b
+
+        r = lerp(r, new_r, brush_alpha * self.alpha_transp)
+        g = lerp(g, new_g, brush_alpha * self.alpha_transp)
+        b = lerp(b, new_b, brush_alpha * self.alpha_transp)
+
+        return r, g, b, a
+    end
+
+    -- Brush radius to diameter
+    local brush_w = draw_size * 2
+    local brush_h = draw_size * 2
+
+    -- Brush_dim is basically lower right corner distance from draw area 0-edges
+    -- Brush_loc is top left corner of brush area
+    local brush_dim = SIZE_OUT - inVector + vec(draw_size)
+    local brush_loc = inVector - vec(draw_size)
+
+    -- Brush width/height either a square of size (draw_size * 2) or distance from 0-edge, whichever is lower
+    brush_w = math.min(brush_w, brush_dim.x)
+    brush_h = math.min(brush_h, brush_dim.y)
+
+    -- Cap location minimum to .1 to avoid random errors
+    brush_loc.x = math.max(brush_loc.x, .1)
+    brush_loc.y = math.max(brush_loc.y, .1)
+
+    -- Width/height of the brush alpha image
+    local alpha_w, alpha_h = self.alpha:getDimensions()
+
+    -- Cheese in brush and color vectors as globals
+    -- Brush using image alpha
+    PIXEL_INPUT_CORNER = inVector - vec(draw_size) -- Pass absolute brush corner location in relation to draw area
+    PIXEL_INPUT_DIMS = vec(draw_size * 2) -- Pass in absolute brush size in pixels
+    PIXEL_INPUT_ALPHADIMS = vec(alpha_w, alpha_h) -- Pass in size of alpha image
+
+    -- Brush using computational alpha
+    PIXEL_INPUT_VEC0 = inVector
+    PIXEL_INPUT_SIZE = draw_size
+
+    -- Draw color
+    if self.erasing then
+        PIXEL_INPUT_COL = {r = .5, g = .5, b = 0}
+    else
+        PIXEL_INPUT_COL = {r = col.x, g = col.y, b = 0}
+    end
+
+    if (brush_w > 0 and brush_h > 0) and (inVector.x > -draw_size and inVector.y > -draw_size) then
+        IMGDATA_MAIN:mapPixel(pixelFunctionAlphaDraw, brush_loc.x, brush_loc.y, brush_w, brush_h)
+    end
+end
+
+
+--- Modify pixels in imageData
+---@param inVector table
+---@param draw_size number 
+---@param col table
+function Brush:smudgeImgData(inVector, draw_size, col, mode)
 
     -- Map pixel colors using image alpha
     local function pixelFunctionAlphaDraw(x, y, r, g, b, a)

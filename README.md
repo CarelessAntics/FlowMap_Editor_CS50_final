@@ -14,7 +14,7 @@ Vector maps are often used in video game shaders to distort materials and textur
 ## Features
 
 #### Vector map painting
-Use a brush to paint 2D vector maps normalized to 0...1 space. Change properties like spacing and lazy mouse radius to ensure smooth strokes. You can also draw using random walkers to get interesting procedural patterns.
+Use a brush to paint 2D vector maps normalized to 0...1 space. Change properties like spacing and lazy mouse radius to ensure smooth strokes, or change alphas to change the brush shape. Brush can also be set to align to brush direction, as well as to constantly rotate when drawn with. You can also draw using random walkers to get interesting procedural patterns.
 
 ----
 

@@ -12,7 +12,7 @@ Element = {  pos = vec(0), -- Position will be top-left corner
             subframe = nil,
             alignment = nil, -- Alignment inside parent frame grid
             grid_location = vec(0), -- parent frame grid coords
-            sprite = nil
+            sprite = nil,
         }
 
 
@@ -167,16 +167,20 @@ end
 --
 -----------------------------------------
 
-button_params = {action = nil, parameters = {}, hover = false, pressed = false}
+button_params = {action = nil, parameters = {}, hover = false, pressed = false, icon_set = nil}
 Button = Element:new(button_params)
 
 
-function Button:new(o, inID, inSize, actionFunc, parameters, inSprite, inTooltip)
+function Button:new(o, inID, inSize, actionFunc, parameters, inSprite, inTooltip, inIconSet)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
 
+    o.icon_set = inIconSet or ICON_SET
+
     inSprite = inSprite or vec(0, 7)
+    local icon_size = o.icon_set.size_icon
+    local atlas_size = o.icon_set.size_atlas
 
     -- Initialize instance params
     o.pos = vec(0)
@@ -185,7 +189,7 @@ function Button:new(o, inID, inSize, actionFunc, parameters, inSprite, inTooltip
     o.type = 'button'
     o.state = false
     --o.graphics = vec(0)--lg.newImage(inIcon or "assets/icons/default.png")
-    o.sprite = lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512)
+    o.sprite = lg.newQuad(inSprite.x * icon_size, inSprite.y * icon_size, icon_size, icon_size, atlas_size, atlas_size)
     o.hover = false
     o.pressed = false
     o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
@@ -193,6 +197,17 @@ function Button:new(o, inID, inSize, actionFunc, parameters, inSprite, inTooltip
     o.tooltip = inTooltip or "No tooltip"
     o:setTooltipDims(FONT_GLOBAL)
     return o
+end
+
+function Button:setIcons(icon_set, new_sprite)
+    
+    local x, y, w, h = self.sprite:getViewport()
+    local icon_size = icon_set.icon_size
+    local atlas_size = icon_set.atlas_size
+
+    new_sprite = new_sprite or vec(x / w, y / h)
+    self.icon_set = icon_set
+    self.sprite = lg.newQuad(new_sprite.x * icon_size, new_sprite.y * icon_size, icon_size, icon_size, atlas_size, atlas_size)
 end
 
 function Button:press()
@@ -214,12 +229,15 @@ end
 buttonWide_params = {width = 0, label = ''}
 ButtonWide = Button:new(buttonWide_params)
 
-function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameters, inSprite, inTooltip)
+function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameters, inSprite, inTooltip, inIconSet)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
 
     inSprite = inSprite or vec(0, 7)
+    o.icon_set = inIconSet or ICON_SET
+    local icon_size = o.icon_set.size_icon
+    local atlas_size = o.icon_set.size_atlas
 
     -- Initialize instance params
     o.pos = vec(0)
@@ -230,9 +248,9 @@ function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameter
     o.type = 'button_wide'
     o.state = false
     --o.graphics = vec(0)--lg.newImage(inIcon or "assets/icons/default.png")
-    o.sprite = {lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512),
-                lg.newQuad((inSprite.x + 1) * 64, inSprite.y * 64, 1, 64, 512, 512),
-                lg.newQuad((inSprite.x + 2) * 64, inSprite.y * 64, 64, 64, 512, 512)}
+    o.sprite = {lg.newQuad(inSprite.x * icon_size, inSprite.y * icon_size, icon_size, icon_size, atlas_size, atlas_size),
+                lg.newQuad((inSprite.x + 1) * icon_size, inSprite.y * icon_size, 1, icon_size, atlas_size, atlas_size),
+                lg.newQuad((inSprite.x + 2) * icon_size, inSprite.y * icon_size, icon_size, icon_size, atlas_size, atlas_size)}
     o.hover = false
     o.pressed = false
     o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
@@ -265,12 +283,16 @@ Dropdown = Button:new(dropdown_params)
 
 
 -- This could be deleted and merged to base Element at some point
-function Dropdown:new(o, inID, inSize, inSprite, inTooltip)
+function Dropdown:new(o, inID, inSize, inSprite, inTooltip, inIconSet)
     o = o or {}
     local mt = {__index = self}
     setmetatable(o, mt)
 
     inSprite = inSprite or vec(0, 7)
+    o.icon_set = inIconSet or ICON_SET
+    local icon_size = o.icon_set.size_icon
+    local atlas_size = o.icon_set.size_atlas
+
     -- Initialize instance params
     o.pos = vec(0)
     o.size = vec(inSize)
@@ -278,7 +300,7 @@ function Dropdown:new(o, inID, inSize, inSprite, inTooltip)
     o.type = 'dropdown'
     o.state = false
     --o.graphics = lg.newImage(inIcon or "assets/icons/default.png")
-    o.sprite = lg.newQuad(inSprite.x * 64, inSprite.y * 64, 64, 64, 512, 512)
+    o.sprite = lg.newQuad(inSprite.x * icon_size, inSprite.y * icon_size, icon_size, icon_size, atlas_size, atlas_size)
     o.content = nil -- Contained frame
     o.parent = nil
     o.tooltip = inTooltip or "No tooltip"
@@ -292,6 +314,61 @@ function Dropdown:setContent(inContent)
     self.subframe = inContent
     self.subframe.parent = self.parent
     self.subframe.state = false
+end
+
+checkbox_params = {label = ""}
+CheckBox = Button:new(checkbox_params)
+
+function CheckBox:new(o, inID, inSize, inLabel, parameters, defaultState, inSprite, inTooltip, inIconSet)
+    o = o or {}
+    local mt = {__index = self}
+    setmetatable(o, mt)
+
+    inSprite = inSprite or vec(0, 7)
+    o.icon_set = inIconSet or ICON_SET
+    local icon_size = o.icon_set.size_icon
+    local atlas_size = o.icon_set.size_atlas
+
+    local char_dims = vec(FONT_GLOBAL:getHeight() / 1.5, FONT_GLOBAL:getHeight())
+
+    -- Initialize instance params
+    o.pos = vec(0)
+    o.size = vec(inSize)
+    o.id = inID
+    o.type = 'checkbox'
+    o.state = defaultState
+    o.label = inLabel or "Checkbox"
+    o.size.x = o.size.x + FONT_GLOBAL:getWidth(o.label) + o.size.y
+    o.sprite = lg.newQuad(inSprite.x * icon_size, inSprite.y * icon_size, icon_size, icon_size, atlas_size, atlas_size)
+    o.hover = false
+    o.pressed = false
+    o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
+    o.parameters = parameters or {}
+    o.tooltip = inTooltip or "No tooltip"
+    o:setPressed(defaultState)
+    o:setTooltipDims(FONT_GLOBAL)
+    return o
+end
+
+function CheckBox:draw()
+    local absPos = self.parent:absolute(self.pos)
+    local char_dims = vec(FONT_GLOBAL:getHeight() / 1.5, FONT_GLOBAL:getHeight())
+    lg.setCanvas(CANVAS_UI_STATIC)
+
+    local padding = 2.5
+    lg.setColor(1, 1, 1, 1)
+
+    if self.label ~= nil then
+        -- self.size.x includes the label as well, so only use size.y for offsets
+        lg.print(self.label, absPos.x + padding + self.size.y, absPos.y + self.size.y / 2 - char_dims.y / 2)
+    end
+    lg.setCanvas()
+end
+
+function CheckBox:toggleCheckbox(target)
+    self.state = not self.state
+    target.value = self.state
+    self:setPressed(self.state)
 end
 
 -----------------------------------------

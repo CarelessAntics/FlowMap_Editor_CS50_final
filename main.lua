@@ -12,10 +12,6 @@ lt = love.timer
 require "./conf"
 require "./helpers/vector"
 require "./helpers/helpers"
-require "./objects/brush"
-require "./objects/walker"
-require "./functionality/filters"
-require "./functionality/fileops"
 -- require "./functionality/resize"
 
 
@@ -66,6 +62,10 @@ mode_RANDOMWALK = false
 mode_DRAW = true
 mode_ORBIT = false
 
+-- Brush globals
+BRUSH_ALIGN = {value=true}
+BRUSH_ROTATE = {value=true}
+
 -- Random walk params
 WALKERS = {}
 WALKERS_RESPAWN = true
@@ -82,7 +82,7 @@ SIZE_OUT = vec(1024)
 CANVAS_SCALE = 1
 
 -- Minimum space between draw area and window edge
-PADDING_min = vec(300, 50)
+PADDING_min = vec(300, 150)
 PADDING = vCopy(PADDING_min)
 PADDING_HALF = PADDING / 2
 
@@ -99,13 +99,29 @@ CANVAS_UI_OVERLAY = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDIN
 
 -- UI Icons
 ICON_ATLAS = lg.newImage("assets/icons/icon_atlas.png")
-ICON_BATCH = lg.newSpriteBatch(ICON_ATLAS, 50, 'static')
-ICON_OFFSET = 0.07
+ICON_SET = {
+    batch = lg.newSpriteBatch(ICON_ATLAS, 50, 'static'),
+    offset = 0.07,
+    size_atlas = 512,
+    size_icon = 64
+}
+
+--ICON_BATCH = lg.newSpriteBatch(ICON_ATLAS, 50, 'static')
+--ICON_OFFSET = 0.07
+
+ALPHA_ATLAS = lg.newImage("assets/alphas/alpha_atlas.png")
+ALPHA_SET = {
+    batch = lg.newSpriteBatch(ALPHA_ATLAS, 50, 'static'),
+    offset = 0.04,
+    size_atlas = 512,
+    size_icon = 128
+}
+ALPHA_BATCH = lg.newSpriteBatch(ALPHA_ATLAS, 50, 'static')
 
 -- TextBox params
 TEXTBOX_SELECTED = nil
 FONT_SIZE_REGULAR = 18
-FONT_GLOBAL = lg.newFont("fonts/Arial.ttf", FONT_SIZE_REGULAR)
+FONT_GLOBAL = lg.newFont("fonts/Bebas-Regular.ttf", FONT_SIZE_REGULAR)
 FONT_GLOBAL:setFilter("nearest", "nearest", 1)
 
 -- Export params
@@ -121,6 +137,13 @@ HOVER_CURRENT = ''
  UI MODULES
  
 --]]-----------------------------------------
+
+require "./objects/brush"
+require "./objects/walker"
+require "./functionality/filters"
+require "./functionality/fileops"
+
+drawing_brush = Brush:new(nil, vec(50), 60)
 
 require "./UI/element"
 require "./UI/frame"
@@ -152,7 +175,7 @@ function love.load()
     for i = 0, 5 do
         WALKERS[i] = Walker:new(nil, vec(math.random(SIZE_OUT.x), math.random(SIZE_OUT.y)), 50)
     end
-    drawing_brush = Brush:new(nil, vec(50), BRUSH_SIZE)
+    
     --drawing_brush = TestBrush:new(nil, vec(50), BRUSH_SIZE)
 end
 
@@ -236,7 +259,8 @@ function love.draw()
     end]]
     lg.draw(CANVAS_UI_BACKGROUND)
     lg.draw(CANVAS_UI_DYNAMIC)
-    lg.draw(ICON_BATCH)
+    lg.draw(ICON_SET.batch)
+    lg.draw(ALPHA_SET.batch)
     lg.draw(CANVAS_UI_STATIC)
     lg.draw(CANVAS_UI_OVERLAY)
     
