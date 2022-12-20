@@ -5,11 +5,17 @@ Work in progress final project for the CS50x 2022 Intro to Computer Science cour
 
 ## What is this
 
-A software for painting 2D vectormaps to be used in video game shaders, using the LÖVE framework (https://love2d.org/). 
-
-----
+A tool for painting 2D vectormaps to be used in video game shaders, written in Lua using the LÖVE framework (https://love2d.org/). 
 
 Vector maps are often used in video game shaders to distort materials and textures. One use case is in flow shaders, which use vector maps to offset a texture in a certain direction to create the appearance of a flowing surface, such as water. As the vector maps encode vectors in images as pixel colors, they can be made in regular image editing software such as Photoshop or Substance Designer. However, they are not dedicated vector editing software, and using them for this admittedly niche purpose can be clunky. This project is intended to make that process a bit easier, with the brush painting its own movement direction instead of a preset color.
+
+## Installation instructions (Windows)
+
+1. Download LÖVE from https://love2d.org/
+2. Clone this repository to your computer
+3.  1. Drag the folder containing `main.lua` on love.exe
+OR
+3.  2. Run `Love.exe` from command line with the directory containing `main.lua` as the argument. e.g. `"C:\path\to\Love.exe" "C:\path\to\project\"`
 
 ## Features
 
@@ -41,7 +47,7 @@ Images can be resized to any 4-digit size, though powers of 2 are recommended. L
 ----
 
 ### Custom UI system
-A UI system created purely for this software. All UI elements reside in frame objects, which can be nested inside each other and in other elements as dropdowns. Elements include icon-based buttons, buttons with custom text, text input boxes, and dropdown menus. Right clicking an element opens a properties window in case one exists
+A UI system created purely for this tool. All UI elements reside in frame objects, which can be nested inside each other and in other elements as dropdowns. Elements include icon-based buttons, buttons with custom text, text input boxes, and dropdown menus. Right clicking an element opens a properties window in case one exists
 
 ## Intro Video
 

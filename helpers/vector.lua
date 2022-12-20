@@ -49,7 +49,7 @@ end
 
 -- Return angle between vector and a reference angle, which is hard coded to (0, 1)
 function vSetAngle(direction)
-    local angle = vAngle(direction, vec(0,1))
+    local angle = vAngle(direction, vec(0,-1))
     return angle
 end
 
@@ -88,23 +88,27 @@ end
 
 
 -- Returns a wrapped around vector
-function wrapped(inVec, in_width, in_height, in_size)
+function wrapped(inVec, in_width, in_height, in_size, axis)
     
     -- Initialize output components
     local outX = inVec.x
     local outY = inVec.y
 
     -- Check if a vector is out of bounds, include possible size for brushes etc
-    if inVec.x > in_width - in_size then
-        outX = inVec.x - in_width
-    elseif inVec.x < in_size then
-        outX = inVec.x + in_width
+    if axis == 'x' or axis == 'both' then
+        if inVec.x > in_width - in_size then
+            outX = inVec.x - in_width
+        elseif inVec.x < in_size then
+            outX = inVec.x + in_width
+        end
     end
 
-    if inVec.y > in_height - in_size then
-        outY = inVec.y - in_height
-    elseif inVec.y < in_size then
-        outY = inVec.y + in_height
+    if axis == 'y' or axis == 'both' then
+        if inVec.y > in_height - in_size then
+            outY = inVec.y - in_height
+        elseif inVec.y < in_size then
+            outY = inVec.y + in_height
+        end
     end
 
     -- if new vector is identical to input, no wraparound has happened. Return a garbage vector so that there's no double draw
@@ -113,6 +117,25 @@ function wrapped(inVec, in_width, in_height, in_size)
     else
         return vec(outX, outY)
     end
+end
+
+-- return vector on which axis the vector is out of bounds
+function isOutOfBounds(inVec, in_width, in_height, in_size)
+    
+    -- Initialize output components
+    local oobX = false
+    local oobY = false
+
+    -- Check if a vector is out of bounds, include possible size for brushes etc
+    if inVec.x > in_width - in_size or inVec.x < in_size then
+        oobX = true
+    end
+
+    if inVec.y > in_height - in_size or inVec.y < in_size then
+        oobY = true
+    end
+
+    return vec(oobX, oobY)
 end
 
 

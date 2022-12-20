@@ -42,3 +42,6 @@ luac.out
 .vscode/launch.json
 flow_gen.code-workspace
 *.sbs
+script.txt
+flow_painter_assets.resources/
+.autosave/

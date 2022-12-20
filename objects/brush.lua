@@ -69,7 +69,7 @@ function Brush:alignAlpha()
     local w_half = w/2
     local h_half = h/2
     local canvas = lg.newCanvas(w, h)
-    local alpha = lg.newImage(self.alpha_original)
+    local alpha = lg.newImage(self.alpha_original, {linear = true})
     local angle = vSetAngle(self.dir)
     --print(angle)
     --local angle = vSetAngle(self.dir)
@@ -91,7 +91,7 @@ function Brush:rotateAlpha()
     local w_half = w/2
     local h_half = h/2
     local canvas = lg.newCanvas(w, h)
-    local alpha = lg.newImage(self.alpha_original)
+    local alpha = lg.newImage(self.alpha_original, {linear = true})
     self.alpha_angle = self.alpha_angle + .1
     --print(angle)
     --local angle = vSetAngle(self.dir)
@@ -157,10 +157,14 @@ function Brush:drawOutline(mPos)
     -- Add a circle if wraparound is used
     if self.wrap then
         lg.setColor(.15, .75, .15)
-        local brush_wrap0 = toWindowSpace(wrapped(toCanvasSpace(self.pos), SIZE_OUT.x, SIZE_OUT.y, self.size))
-        local brush_wrap1 = toWindowSpace(wrapped(toCanvasSpace(brush_wrap0), SIZE_OUT.x, SIZE_OUT.y, self.size))
+
+        local brush_wrap0 = toWindowSpace(wrapped(toCanvasSpace(self.pos), SIZE_OUT.x, SIZE_OUT.y, self.size, 'x'))
+        local brush_wrap1 = toWindowSpace(wrapped(toCanvasSpace(self.pos), SIZE_OUT.x, SIZE_OUT.y, self.size, 'y'))
+        local brush_wrap2 = toWindowSpace(wrapped(toCanvasSpace(self.pos), SIZE_OUT.x, SIZE_OUT.y, self.size, 'both'))
+
         lg.circle("line", brush_wrap0.x, brush_wrap0.y, self.size, 64)
         lg.circle("line", brush_wrap1.x, brush_wrap1.y, self.size, 64)
+        lg.circle("line", brush_wrap2.x, brush_wrap2.y, self.size, 64)
     end
 
     -- Actual brush circle
@@ -194,12 +198,25 @@ function Brush:draw(mode)
     self:drawToImgData(pos_convert, draw_size, col)
 
     if self.wrap then
-        local pos_wrap0 = wrapped(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size)
-        self:drawToImgData(pos_wrap0, draw_size, col)
+
+        local oob = isOutOfBounds(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size)
+        if oob.x then
+            local pos_wrap_x = wrapped(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size, 'x')
+            self:drawToImgData(pos_wrap_x, draw_size, col)
+        end
+        if oob.y then
+            local pos_wrap_y = wrapped(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size, 'y')
+            self:drawToImgData(pos_wrap_y, draw_size, col)
+        end
+        if oob.x and oob.y then
+            local pos_wrap_both = wrapped(pos_convert, SIZE_OUT.x, SIZE_OUT.y, draw_size, 'both')
+            self:drawToImgData(pos_wrap_both, draw_size, col)
+        end
 
         -- Wraparound for the wraparound to handle cases where brush is wrapping OOB
-        local pos_wrap1 = wrapped(pos_wrap0, SIZE_OUT.x, SIZE_OUT.y, draw_size)
-        self:drawToImgData(pos_wrap1, draw_size, col)
+        --local pos_wrap1 = wrapped(pos_wrap0, SIZE_OUT.x, SIZE_OUT.y, draw_size)
+        --self:drawToImgData(pos_wrap1, draw_size, col)
+
     end
 end
 
@@ -213,18 +230,20 @@ function Brush:drawToImgData(inVector, draw_size, col, mode)
     -- Map pixel colors using image alpha
     local function pixelFunctionAlphaDraw(x, y, r, g, b, a)
 
-        -- Convert from global xy to local alpha xy
+        -- Coordinates on brush alpha image. Convert from global xy to local alpha xy
         local alpha_x = ((x - PIXEL_INPUT_CORNER.x) / PIXEL_INPUT_DIMS.x) * PIXEL_INPUT_ALPHADIMS.x
         local alpha_y = ((y - PIXEL_INPUT_CORNER.y) / PIXEL_INPUT_DIMS.y) * PIXEL_INPUT_ALPHADIMS.y
 
         -- If alpha pixel OOB, return 0, otherwise return pixel value from image
         local brush_alpha = 0
-        if (alpha_x > 0 and alpha_y > 0) and (alpha_x <= PIXEL_INPUT_ALPHADIMS.x and alpha_y <= PIXEL_INPUT_ALPHADIMS.x) then
+        if (alpha_x > 0 and alpha_y > 0) and (alpha_x <= PIXEL_INPUT_ALPHADIMS.x and alpha_y <= PIXEL_INPUT_ALPHADIMS.y) then
             brush_alpha = self.alpha:getPixel(alpha_x, alpha_y)
         end
 
         -- Smoothstep according to brush hardness value
-        brush_alpha = smoothStep(0, 1 - self.hardness, brush_alpha)
+        --brush_alpha = smoothStep(0, 1 - self.hardness, brush_alpha)
+        local hardness = clamp(.001, .999, self.hardness)
+        brush_alpha = (clamp(0, 1, hardness + brush_alpha) - hardness) * (1 / (1 - hardness))
 
         local new_r = PIXEL_INPUT_COL.r
         local new_g = PIXEL_INPUT_COL.g
@@ -238,21 +257,21 @@ function Brush:drawToImgData(inVector, draw_size, col, mode)
     end
 
     -- Brush radius to diameter
-    local brush_w = draw_size * 2
-    local brush_h = draw_size * 2
+    local brush_w = draw_size * 2 
+    local brush_h = draw_size * 2 
 
     -- Brush_dim is basically lower right corner distance from draw area 0-edges
     -- Brush_loc is top left corner of brush area
     local brush_dim = SIZE_OUT - inVector + vec(draw_size)
     local brush_loc = inVector - vec(draw_size)
 
-    -- Brush width/height either a square of size (draw_size * 2) or distance from 0-edge, whichever is lower
-    brush_w = math.min(brush_w, brush_dim.x)
-    brush_h = math.min(brush_h, brush_dim.y)
+    -- Brush width/height either a square of size (draw_size * 2) or distance from 0-edge, whichever is lower, rounded up
+    brush_w = math.min(brush_w, math.floor(brush_dim.x) + 1)
+    brush_h = math.min(brush_h, math.floor(brush_dim.y) + 1)
 
     -- Cap location minimum to .1 to avoid random errors
-    brush_loc.x = math.max(brush_loc.x, .1)
-    brush_loc.y = math.max(brush_loc.y, .1)
+    brush_loc.x = math.max(brush_loc.x, .01)
+    brush_loc.y = math.max(brush_loc.y, .01)
 
     -- Width/height of the brush alpha image
     local alpha_w, alpha_h = self.alpha:getDimensions()
@@ -296,11 +315,12 @@ function Brush:smudgeImgData(inVector, draw_size, col, mode)
         -- If alpha pixel OOB, return 0, otherwise return pixel value from image
         local brush_alpha = 0
         if (alpha_x > 0 and alpha_y > 0) and (alpha_x <= PIXEL_INPUT_ALPHADIMS.x and alpha_y <= PIXEL_INPUT_ALPHADIMS.x) then
-            brush_alpha = self.alpha:getPixel(alpha_x, alpha_y)
+            brush_alpha, _, _, _ = self.alpha:getPixel(alpha_x, alpha_y)
         end
 
         -- Smoothstep according to brush hardness value
-        brush_alpha = smoothStep(0, 1 - self.hardness, brush_alpha)
+        --brush_alpha = smoothStep(0, 1 - self.hardness, brush_alpha)
+        brush_alpha = (clamp(0, 1, self.hardness + brush_alpha) - self.hardness) * (1 / self.hardness)
 
         local new_r = PIXEL_INPUT_COL.r
         local new_g = PIXEL_INPUT_COL.g

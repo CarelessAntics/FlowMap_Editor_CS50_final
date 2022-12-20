@@ -231,7 +231,7 @@ function love.update()
     elseif mode_DRAW then
         drawing_brush:updateFromProperties(UI_main)
         drawing_brush:moveToLazy(mousePos)
-        if drawing_brush.active and (drawing_brush.pos ~= drawing_brush.prev_pos) then
+        if drawing_brush.active and (drawing_brush.pos.x ~= drawing_brush.prev_pos.x and drawing_brush.pos.y ~= drawing_brush.prev_pos.y) then
             drawing_brush:draw('draw')
         end
         --drawing_brush:moveTo(mousePos)
@@ -409,7 +409,7 @@ function windowManager()
         CANVAS_UI_STATIC = lg.newCanvas(size_x, size_y)
         CANVAS_UI_OVERLAY = lg.newCanvas(size_x, size_y)
                 
-        ICON_BATCH:clear()
+        ICON_SET.batch:clear()
         for _, frame in pairs(UI_main.frames) do
             frame:draw()
         end
