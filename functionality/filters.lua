@@ -1,6 +1,6 @@
 --- Normalize whole image vectorfield
 ---@param inImgData any
-function filterNormalize(inImgData, UI_ref)
+function filterNormalize(UI_ref)
 
     local function pixelFunction(x, y, r, g, b, a)
         local nR = r * 2 - 1
@@ -21,13 +21,13 @@ function filterNormalize(inImgData, UI_ref)
         return nR, nG, b, a
     end
 
-    inImgData:mapPixel(pixelFunction)
+    IMGDATA_MAIN:mapPixel(pixelFunction)
 end
 
 -- Box blur implementation. 
 -- inSamples: more = better quality
 -- inSeparation: more = larger blur radius
-function filterBoxBlur(inImgData, UI_ref)
+function filterBoxBlur(UI_ref)
 
     -- Retrieve filter properties from UI
     local properties_id = 'f_blur_properties'
@@ -77,7 +77,7 @@ function filterBoxBlur(inImgData, UI_ref)
                 local y_off = kernel[i + 1]
 
                 -- Get new pixel values from original image data. For edge pixels, wrap the offsets around
-                local r0, g0, b0, _ = inImgData:getPixel((x + x_off) % SIZE_OUT.x, (y + y_off) % SIZE_OUT.y)
+                local r0, g0, b0, _ = IMGDATA_MAIN:getPixel((x + x_off) % SIZE_OUT.x, (y + y_off) % SIZE_OUT.y)
                 
                 -- Converting pixel values to -1...1 seems to help with image brightening
                 r_res = r_res + (r0 * 2 - 1)
@@ -96,7 +96,7 @@ function filterBoxBlur(inImgData, UI_ref)
     end
 
     local temp = li.newImageData(SIZE_OUT.x, SIZE_OUT.y, "rgba16")
-    temp:paste(inImgData, 0, 0, 0, 0, SIZE_OUT.x, SIZE_OUT.y)
+    temp:paste(IMGDATA_MAIN, 0, 0, 0, 0, SIZE_OUT.x, SIZE_OUT.y)
     temp:mapPixel(pixelFunction)
-    inImgData:paste(temp, 0, 0, 0, 0, SIZE_OUT.x, SIZE_OUT.y)
+    IMGDATA_MAIN:paste(temp, 0, 0, 0, 0, SIZE_OUT.x, SIZE_OUT.y)
 end

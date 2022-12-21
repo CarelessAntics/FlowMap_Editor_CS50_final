@@ -188,8 +188,7 @@ function Brush:draw(mode)
         return
     end
 
-    local draw_size = self.size * (1 / CANVAS_SCALE)
-
+    local draw_size = self.size * (1 / math.min(CANVAS_SCALES.x, CANVAS_SCALES.y))
     -- Set color from direction vector
     local col = toZeroOne(self.dir)
 

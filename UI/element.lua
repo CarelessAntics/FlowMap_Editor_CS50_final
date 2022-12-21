@@ -449,6 +449,7 @@ end
 function TextBox:validate(t)
 
     local decimal = true
+    local operator = true
     local letters = true
     local length = true
 
@@ -459,6 +460,10 @@ function TextBox:validate(t)
             decimal = string.match(t, "%d+") ~= nil
         else
             decimal = string.match(t, "%d?[.]?") ~= nil
+        end
+
+        if string.match(t, "[%+%*%^%-%/]+") ~= nil then
+            operator = false
         end
 
     -- Check that input is letters only
@@ -473,7 +478,7 @@ function TextBox:validate(t)
         length = false
     end
 
-    return decimal and letters and length
+    return decimal and letters and length and operator
 end
 
 

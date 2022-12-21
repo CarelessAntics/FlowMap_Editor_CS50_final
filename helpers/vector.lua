@@ -161,12 +161,12 @@ end
 -- Convert vector from window to canvas space
 -- Meaning the location is between 0 and canvas size, while the window itself has a padding around the canvas
 function toCanvasSpace(v)
-    return (v - PADDING) * (1 / CANVAS_SCALE)
+    return (v - vec(PADDING_X.x, PADDING_Y.x)) * (1 / CANVAS_SCALE)
 end
 
 -- And vice versa
 function toWindowSpace(v)
-    return (v * CANVAS_SCALE) + PADDING
+    return (v * CANVAS_SCALE) + vec(PADDING_X.x, PADDING_Y.x)
 end
 
 
@@ -205,6 +205,8 @@ function vec(xIn, yIn)
         __div = function (l, r)
             if type(r) == "number" then
                 return vScalarDiv(l, r)
+            elseif type(l) == "number" then
+                return vScalarDiv(r, l)
             else
                 return vDiv(l, r)
             end

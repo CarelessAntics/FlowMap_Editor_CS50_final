@@ -37,9 +37,9 @@ function UI:init()
     frame_drawing = Frame:new(nil, 'frame_drawing', vec(0), FRAME_PADDING, 'right')
 
     -- Elements for dd_filters
-    btn_normalize = Button:new(nil, "filter_normalize", button_size, filterNormalize, {IMGDATA_MAIN, self}, vec(2, 0))
+    btn_normalize = Button:new(nil, "filter_normalize", button_size, filterNormalize, {self}, vec(2, 0))
 
-    btn_blur = Button:new(nil, "filter_blur", button_size, filterBoxBlur, {IMGDATA_MAIN, self}, vec(4, 0))
+    btn_blur = Button:new(nil, "filter_blur", button_size, filterBoxBlur, {self}, vec(4, 0))
     btn_blur:setProperties('f_blur_properties', 'right', self,
                             {label = "Blur Radius", id = "p_blur_rad", value = 10, size = vec(4, 1)},
                             {label = "Blur Samples", id = "p_blur_samples", value = 4, size = vec(4, 1)})

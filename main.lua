@@ -79,23 +79,36 @@ WALKERS_RESPAWN = true
 --WIDTH = 1024
 --HEIGHT = 1024
 SIZE_OUT = vec(1024)
+SIZE_SHADER = vec(512)
 CANVAS_SCALE = 1
+CANVAS_SCALES = vec(1)
 
 -- Minimum space between draw area and window edge
-PADDING_min = vec(300, 150)
-PADDING = vCopy(PADDING_min)
-PADDING_HALF = PADDING / 2
+--PADDING_min = vec(300, 150)
+--PADDING = vCopy(PADDING_min)
+PADDING_X_min = vec(300, 520)
+PADDING_Y_min = vec(150)
 
-lw.setMode(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2, {resizable = true})
+PADDING_X = vCopy(PADDING_X_min)
+PADDING_Y = vCopy(PADDING_Y_min)
+
+PADDING_X_TOTAL = PADDING_X_min.x + PADDING_X_min.y
+PADDING_Y_TOTAL = PADDING_Y_min.x + PADDING_Y_min.y
+
+PADDING_X_HALF = PADDING_X / 2
+PADDING_Y_HALF = PADDING_Y / 2
+
+lw.setMode(SIZE_OUT.x + PADDING_X_TOTAL, SIZE_OUT.y + PADDING_Y_TOTAL, {resizable = true})
 
 IMGDATA_MAIN = nil -- Main image where drawing happens
 CANVAS_IMAGE = nil -- Main canvas where IMGDATA_MAIN is drawn on screen
 screenInit(SIZE_OUT.x, SIZE_OUT.y)
 
-CANVAS_UI_DYNAMIC = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
-CANVAS_UI_BACKGROUND = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
-CANVAS_UI_STATIC = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
-CANVAS_UI_OVERLAY = lg.newCanvas(SIZE_OUT.x + PADDING.x * 2, SIZE_OUT.y + PADDING.y * 2)
+CANVAS_UI_DYNAMIC = lg.newCanvas(SIZE_OUT.x + PADDING_X_TOTAL, SIZE_OUT.y + PADDING_Y_TOTAL)
+CANVAS_UI_BACKGROUND = lg.newCanvas(SIZE_OUT.x + PADDING_X_TOTAL, SIZE_OUT.y + PADDING_Y_TOTAL)
+CANVAS_UI_STATIC = lg.newCanvas(SIZE_OUT.x + PADDING_X_TOTAL, SIZE_OUT.y + PADDING_Y_TOTAL)
+CANVAS_UI_OVERLAY = lg.newCanvas(SIZE_OUT.x + PADDING_X_TOTAL, SIZE_OUT.y + PADDING_Y_TOTAL)
+CANVAS_SHADER = lg.newCanvas(SIZE_SHADER.x, SIZE_SHADER.y)
 
 -- UI Icons
 ICON_ATLAS = lg.newImage("assets/icons/icon_atlas.png")
@@ -157,6 +170,10 @@ require "./UI/UI_main"
 
 function love.load()
 
+    SHADER_PREVIEW = lg.newShader("shader/flow.glsl")
+    SHADER_BACKGROUND = lg.newImage("assets/other/harvard.png")
+    --SHADER_PREVIEW:send('iResolution', {SIZE_SHADER.x, SIZE_SHADER.y})
+
     lg.setBackgroundColor(.2, .2, .2, 1)
     lg.setFont(FONT_GLOBAL)
 
@@ -183,6 +200,7 @@ function love.update()
 
     --UI_main:updateFrames()
     windowManager()
+    --SHADER_PREVIEW:send('iTime', lt.getTime())
 
 
     -- Return mouse position
@@ -248,41 +266,74 @@ function love.draw()
         drawing_brush:drawOutline(mousePos)
     end
 
+    local window_size_x, window_size_y = lg.getDimensions()
+
     lg.setColor(1, 1, 1)
+    lg.setLineWidth(2)
     DISPLAY_IMAGE:replacePixels(IMGDATA_MAIN)
-    lg.draw(DISPLAY_IMAGE, PADDING.x, PADDING.y, 0, CANVAS_SCALE)
+
+    SHADER_PREVIEW:send('vectorMap', DISPLAY_IMAGE)
+    SHADER_PREVIEW:send('iTime', lt.getTime())
+
+    lg.draw(DISPLAY_IMAGE, PADDING_X.x, PADDING_Y.x, 0, CANVAS_SCALE)
 
     --[[
     for _, frame in pairs(UI_main.frames) do
         --frame:drawDebug()
         frame:draw()
     end]]
+
+    CANVAS_SHADER:renderTo(
+        function()
+            lg.clear(0, 0, 0, 0)
+            local w, h = SHADER_BACKGROUND:getDimensions()
+            local self_w, self_h = CANVAS_SHADER:getDimensions()
+            local line_w = 5
+
+            lg.setShader(SHADER_PREVIEW)
+            --lg.rectangle('fill', 0, 0, lg.getWidth(), lg.getHeight())
+            lg.draw(SHADER_BACKGROUND, 0, 0, 0, SIZE_SHADER.x / w, SIZE_SHADER.y / h)
+            lg.setShader()
+
+            lg.setLineWidth(line_w)
+            lg.setColor(0,0,0,1)
+            lg.rectangle('line', line_w*.5, line_w*.5, self_w - line_w, self_h - line_w)
+            lg.setColor(1, 1, 1, 1)
+        end
+    )
+
+    lg.setLineWidth(2)
+
+    local canvas_right_side = (PADDING_X.x + SIZE_OUT.x * CANVAS_SCALE)
+    local shader_pos_x = canvas_right_side + (window_size_x - canvas_right_side - SIZE_SHADER.x) * .5
+    lg.draw(CANVAS_SHADER, shader_pos_x, window_size_y / 2 - SIZE_SHADER.y / 2, 0)
+
     lg.draw(CANVAS_UI_BACKGROUND)
     lg.draw(CANVAS_UI_DYNAMIC)
     lg.draw(ICON_SET.batch)
     lg.draw(ALPHA_SET.batch)
     lg.draw(CANVAS_UI_STATIC)
-    lg.draw(CANVAS_UI_OVERLAY)
-    
+    lg.draw(CANVAS_UI_OVERLAY)   
 
     local scaled_canvas = CANVAS_SCALE * SIZE_OUT
-    lg.print("Size: "..SIZE_OUT.x.." x "..SIZE_OUT.y, PADDING.x, PADDING.y + scaled_canvas.y)
+    lg.print("Size: "..SIZE_OUT.x.." x "..SIZE_OUT.y, PADDING_X.x, PADDING_Y.y + scaled_canvas.y)
+    lg.print("Preview:", shader_pos_x, window_size_y / 2 - SIZE_SHADER.y / 2 - FONT_GLOBAL:getHeight())
 
     -- On screen debug printing
     mouseCanvas = toCanvasSpace(mousePos)
-    lg.print(lfs.getSaveDirectory(), PADDING.x + 30, PADDING.y + 30)
-    lg.print(mousePos.x .. ", " .. mousePos.y, PADDING.x + 30, PADDING.y + 30 + 15)
-    lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING.x + 30, PADDING.y + 30 + 30)
-    lg.print(drawing_brush.pos.x .. ", " .. drawing_brush.pos.y, PADDING.x + 30, PADDING.y + 30 + 45)
-    lg.print(drawing_brush.prev_pos.x .. ", " .. drawing_brush.prev_pos.y, PADDING.x + 30, PADDING.y + 30 + 60)
-    lg.print("FPS: " .. lt.getFPS(), PADDING.x + 30, PADDING.y + 30 + 75)
-    lg.print(UI_main.content[1].bBox[1].x .. ", " .. UI_main.content[1].bBox[1].y .. ' | ' .. UI_main.content[1].bBox[2].x .. ", " .. UI_main.content[1].bBox[2].y, PADDING.x + 30, PADDING.y + 30 + 90)
+    lg.print(lfs.getSaveDirectory(), PADDING_X.x + 30, PADDING_Y.y + 30)
+    lg.print(mousePos.x .. ", " .. mousePos.y, PADDING_X.x + 30, PADDING_Y.y + 30 + 15)
+    lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING_X.x + 30, PADDING_Y.y + 30 + 30)
+    lg.print(drawing_brush.pos.x .. ", " .. drawing_brush.pos.y, PADDING_X.x + 30, PADDING_Y.y + 30 + 45)
+    lg.print(drawing_brush.prev_pos.x .. ", " .. drawing_brush.prev_pos.y, PADDING_X.x + 30, PADDING_Y.y + 30 + 60)
+    lg.print("FPS: " .. lt.getFPS(), PADDING_X.x + 30, PADDING_Y.y + 30 + 75)
+    lg.print(UI_main.content[1].bBox[1].x .. ", " .. UI_main.content[1].bBox[1].y .. ' | ' .. UI_main.content[1].bBox[2].x .. ", " .. UI_main.content[1].bBox[2].y, PADDING_X.x + 30, PADDING_Y.y + 30 + 90)
 
     --[[
     for i = 0, WIDTH do
         local col = lerp(0, 1, i / WIDTH)
         lg.setColor(col, col, col)
-        lg.circle('fill', i, PADDING.y + 550, 10, 32)
+        lg.circle('fill', i, PADDING_Y.y + 550, 10, 32)
     end]]
 
     lg.setCanvas(CANVAS_UI_OVERLAY)
@@ -416,11 +467,17 @@ function windowManager()
         
     end
 
-    local scales = (window_size - (PADDING_min * 2)) / SIZE_OUT
-    CANVAS_SCALE = math.min(scales.x, scales.y)
+    CANVAS_SCALES = (window_size - (vec(PADDING_X_TOTAL, PADDING_Y_TOTAL))) / SIZE_OUT
+    CANVAS_SCALE = math.min(CANVAS_SCALES.x, CANVAS_SCALES.y)
 
-    PADDING.x = (size_x - SIZE_OUT.x * CANVAS_SCALE) / 2
-    PADDING.y = (size_y - SIZE_OUT.y * CANVAS_SCALE) / 2
+    --PADDING_X.x = (size_x - SIZE_OUT.x * CANVAS_SCALE) / 2
+    --PADDING_Y.y = (size_y - SIZE_OUT.y * CANVAS_SCALE) / 2
+    local padding_x_totals = (size_x - SIZE_OUT.x * CANVAS_SCALE) * .5
+    local padding_y_totals = (size_y - SIZE_OUT.y * CANVAS_SCALE) * .5
 
-    PADDING_HALF = PADDING / 2
+    local x_ratio = PADDING_X_min.x / PADDING_X_min.y
+    local y_ratio = PADDING_Y_min.x / PADDING_Y_min.y
+
+    PADDING_X = vec(padding_x_totals * x_ratio, padding_x_totals * (1 / x_ratio))
+    PADDING_Y = vec(padding_y_totals * y_ratio, padding_y_totals * (1 / y_ratio))
 end
