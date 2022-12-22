@@ -225,7 +225,7 @@ function Frame:addElement(element, placement, UI_ref)
     self:updateAbsolutePos(0,0)
 end
 
-
+-- Similar to addElement, but instead uses explicit grid location.
 function Frame:addElementToGrid(element, gridPos, UI_ref)
     UI_ref.elements[element.id] = element
     element.pos = self:relative(vCopy(self.bBox[1] + vec(self.padding)))
@@ -362,7 +362,7 @@ function Frame:getHit(mPos, mButton, UI_ref, key_pressed)
 
             -- if no mouse button specified, hover detected
             if mButton == nil then
-                if HOVER_CURRENT == element.id then
+                if HOVER_CURRENT == element.id and element.tooltip ~= '' then
                     element:drawTooltip(mPos)
                 else
                     HOVER_CURRENT = element.id

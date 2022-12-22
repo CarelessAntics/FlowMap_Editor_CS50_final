@@ -190,7 +190,8 @@ function love.load()
     lg.setCanvas()
 
     for i = 0, 5 do
-        WALKERS[i] = Walker:new(nil, vec(math.random(SIZE_OUT.x), math.random(SIZE_OUT.y)), 50)
+        --WALKERS[i] = Walker:new(nil, vec(math.random(SIZE_OUT.x), math.random(SIZE_OUT.y)), 50)
+        WALKERS[i] = Walker:new(nil, vec(math.random(SIZE_OUT.x - 50 * 2) + 50, math.random(SIZE_OUT.y - 50 * 2) + 50), 30)
     end
     
     --drawing_brush = TestBrush:new(nil, vec(50), BRUSH_SIZE)
@@ -277,12 +278,6 @@ function love.draw()
 
     lg.draw(DISPLAY_IMAGE, PADDING_X.x, PADDING_Y.x, 0, CANVAS_SCALE)
 
-    --[[
-    for _, frame in pairs(UI_main.frames) do
-        --frame:drawDebug()
-        frame:draw()
-    end]]
-
     CANVAS_SHADER:renderTo(
         function()
             lg.clear(0, 0, 0, 0)
@@ -308,6 +303,14 @@ function love.draw()
     local shader_pos_x = canvas_right_side + (window_size_x - canvas_right_side - SIZE_SHADER.x) * .5
     lg.draw(CANVAS_SHADER, shader_pos_x, window_size_y / 2 - SIZE_SHADER.y / 2, 0)
 
+    local scaled_canvas = CANVAS_SCALE * SIZE_OUT
+    lg.print("Size: "..SIZE_OUT.x.." x "..SIZE_OUT.y, PADDING_X.x, PADDING_Y.y + scaled_canvas.y)
+    lg.print("Preview:", shader_pos_x, window_size_y / 2 - SIZE_SHADER.y / 2 - FONT_GLOBAL:getHeight())
+
+    local mouseCanvas = toCanvasSpace(mousePos)
+    local mouse_pos_string = "Mouse location: " .. string.format('%.0f', mouseCanvas.x) .. ', ' .. string.format('%.0f', mouseCanvas.y)
+    lg.print(mouse_pos_string, canvas_right_side - FONT_GLOBAL:getWidth(mouse_pos_string), PADDING_Y.x + scaled_canvas.y)
+
     lg.draw(CANVAS_UI_BACKGROUND)
     lg.draw(CANVAS_UI_DYNAMIC)
     lg.draw(ICON_SET.batch)
@@ -315,12 +318,8 @@ function love.draw()
     lg.draw(CANVAS_UI_STATIC)
     lg.draw(CANVAS_UI_OVERLAY)   
 
-    local scaled_canvas = CANVAS_SCALE * SIZE_OUT
-    lg.print("Size: "..SIZE_OUT.x.." x "..SIZE_OUT.y, PADDING_X.x, PADDING_Y.y + scaled_canvas.y)
-    lg.print("Preview:", shader_pos_x, window_size_y / 2 - SIZE_SHADER.y / 2 - FONT_GLOBAL:getHeight())
-
+    --[[
     -- On screen debug printing
-    mouseCanvas = toCanvasSpace(mousePos)
     lg.print(lfs.getSaveDirectory(), PADDING_X.x + 30, PADDING_Y.y + 30)
     lg.print(mousePos.x .. ", " .. mousePos.y, PADDING_X.x + 30, PADDING_Y.y + 30 + 15)
     lg.print(mouseCanvas.x .. ", " .. mouseCanvas.y, PADDING_X.x + 30, PADDING_Y.y + 30 + 30)
@@ -328,6 +327,7 @@ function love.draw()
     lg.print(drawing_brush.prev_pos.x .. ", " .. drawing_brush.prev_pos.y, PADDING_X.x + 30, PADDING_Y.y + 30 + 60)
     lg.print("FPS: " .. lt.getFPS(), PADDING_X.x + 30, PADDING_Y.y + 30 + 75)
     lg.print(UI_main.content[1].bBox[1].x .. ", " .. UI_main.content[1].bBox[1].y .. ' | ' .. UI_main.content[1].bBox[2].x .. ", " .. UI_main.content[1].bBox[2].y, PADDING_X.x + 30, PADDING_Y.y + 30 + 90)
+    ]]
 
     --[[
     for i = 0, WIDTH do

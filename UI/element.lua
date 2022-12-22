@@ -194,7 +194,7 @@ function Button:new(o, inID, inSize, actionFunc, parameters, inSprite, inTooltip
     o.pressed = false
     o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
     o.parameters = parameters or {}
-    o.tooltip = inTooltip or "No tooltip"
+    o.tooltip = inTooltip or ""
     o:setTooltipDims(FONT_GLOBAL)
     return o
 end
@@ -255,7 +255,7 @@ function ButtonWide:new(o, inID, inSize, inWidth, inLabel, actionFunc, parameter
     o.pressed = false
     o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
     o.parameters = parameters or {}
-    o.tooltip = inTooltip or "No tooltip"
+    o.tooltip = inTooltip or ""
     o:setTooltipDims(FONT_GLOBAL)
     return o
 end
@@ -303,7 +303,7 @@ function Dropdown:new(o, inID, inSize, inSprite, inTooltip, inIconSet)
     o.sprite = lg.newQuad(inSprite.x * icon_size, inSprite.y * icon_size, icon_size, icon_size, atlas_size, atlas_size)
     o.content = nil -- Contained frame
     o.parent = nil
-    o.tooltip = inTooltip or "No tooltip"
+    o.tooltip = inTooltip or ""
     o:setTooltipDims(FONT_GLOBAL)
     return o
 end

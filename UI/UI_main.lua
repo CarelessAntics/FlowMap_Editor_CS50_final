@@ -37,9 +37,9 @@ function UI:init()
     frame_drawing = Frame:new(nil, 'frame_drawing', vec(0), FRAME_PADDING, 'right')
 
     -- Elements for dd_filters
-    btn_normalize = Button:new(nil, "filter_normalize", button_size, filterNormalize, {self}, vec(2, 0))
+    btn_normalize = Button:new(nil, "filter_normalize", button_size, filterNormalize, {self}, vec(2, 0), 'Normalize vectors')
 
-    btn_blur = Button:new(nil, "filter_blur", button_size, filterBoxBlur, {self}, vec(4, 0))
+    btn_blur = Button:new(nil, "filter_blur", button_size, filterBoxBlur, {self}, vec(4, 0), 'Box blur')
     btn_blur:setProperties('f_blur_properties', 'right', self,
                             {label = "Blur Radius", id = "p_blur_rad", value = 10, size = vec(4, 1)},
                             {label = "Blur Samples", id = "p_blur_samples", value = 4, size = vec(4, 1)})
@@ -49,7 +49,7 @@ function UI:init()
     frame_filters:addElement(btn_blur, 'bottom', self)
 
     -- Elements for dd_drawing
-    btn_mode_draw = Button:new(nil, "brush_drawing", button_size, function() mode_DRAW = true mode_RANDOMWALK = false end, {}, vec(6, 0))
+    btn_mode_draw = Button:new(nil, "brush_drawing", button_size, function() mode_DRAW = true mode_RANDOMWALK = false end, {}, vec(6, 0), 'Draw with a brush')
     btn_mode_draw:setProperties('brush_drawing_properties', 'right', self, 
                                 {label = "Brush Radius", id = "p_brush_rad", value = 50, size = vec(4, 1)},
                                 {label = "Brush Hardness", id = "p_brush_hard", value = .5, size = vec(4, 1)},
@@ -57,11 +57,11 @@ function UI:init()
                                 {label = "Spacing", id = "p_brush_spacing", value = 10, size = vec(4, 1)},
                                 {label = "Alpha", id = "p_brush_alpha_transp", value = 1, size = vec(4, 1)})
 
-    btn_mode_walker = Button:new(nil, "brush_walker_1", button_size, function() mode_DRAW = false mode_RANDOMWALK = true end, {})
+    btn_mode_walker = Button:new(nil, "brush_walker_1", button_size, function() mode_DRAW = false mode_RANDOMWALK = true end, {}, vec(4, 4), 'Random walkers')
     --btn_wide_test = ButtonWide:new(nil, "wide_test", button_size, button_size, 'Test Label', nil, {}, vec(0, 2))
     --textbox_test = TextBox:new(nil, "text_test", 'number', nil, vec(4, 1), "label123")
 
-    dd_alphas = Dropdown:new(nil, 'brush_alphas', button_size, vec(2, 4))
+    dd_alphas = Dropdown:new(nil, 'brush_alphas', button_size, vec(2, 4), 'Select brush alpha')
     frame_alphas = Frame:new(Frame:new(nil, 'frame_alphas', vec(0), FRAME_PADDING, 'right'))
     self:createAlphaButtons(frame_alphas, 8)
 
@@ -119,14 +119,14 @@ function UI:init()
 
     txt_resize_x = TextBox:new(nil, "text_resize_x", 'number', tostring(SIZE_OUT.x), vec(5, 1), "Size X:", nil, 4)
     txt_resize_y = TextBox:new(nil, "text_resize_y", 'number', tostring(SIZE_OUT.y), vec(5, 1), "Size Y:", nil, 4)
-    btn_resize = ButtonWide:new(nil, 'fileops_resize', 40, 60, 'Resize Image', resizeImage, {txt_resize_x, txt_resize_y}, vec(0,2), '')
+    btn_resize = ButtonWide:new(nil, 'fileops_resize', 40, 60, 'Resize Image', resizeImage, {txt_resize_x, txt_resize_y}, vec(0,2))
 
     frame_resize:addElement(txt_resize_x, 'bottom', self)
     frame_resize:addElement(txt_resize_y, 'top right', self)
     frame_resize:addElement(btn_resize, 'bottom', self)
 
     txt_save = TextBox:new(nil, "text_save", 'string', nil, vec(10, 1), "File Name")
-    btn_save = ButtonWide:new(nil, 'fileops_save', 40, 10, 'Save', saveScreen, {txt_save}, vec(0,2), '')
+    btn_save = ButtonWide:new(nil, 'fileops_save', 40, 10, 'Save', saveScreen, {txt_save}, vec(0,2))
 
     frame_save:addElement(txt_save, 'bottom', self)
     frame_save:addElement(btn_save, 'bottom', self)
@@ -194,7 +194,7 @@ function UI:refreshFileList(parent_frame, button_size)
 
 end
 
-
+-- Create buttons for the Open dropdown
 function UI:createFileListButtons(savepath, size, btn_count)
     local btns = {}
     local max_length = 30
