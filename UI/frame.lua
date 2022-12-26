@@ -1,17 +1,14 @@
--- TODO: Frame
--- TODO: Contains multiple objects with positions relative to Frame
--- TODO: Frame can be moved
--- TODO: Ordering objects inside frame
 
 Frame = {   contents = {},
             pos = vec(0), -- Position offset relative to window and alignment
             bBox = {vec(0), vec(0)}, -- Frame bounding box absolute position values
-            dimensions = vec(0),
-            grid_dimensions = vec(0),
-            padding = 0,
-            align = 'right',
-            state = true,
-            current_dropdown = nil,
+            dimensions = vec(0), -- frame width and height
+            grid_dimensions = vec(0), -- Amount of columns and rows in grid
+            cell_dimensions = nil, -- Widths of columns and heights of rows to size grid regardless of empty cells
+            padding = 0, -- Amount of padding between elements
+            align = 'right', -- alignment relative to parent
+            state = true, -- is frame visible (e.g. as a subframe)
+            current_dropdown = nil, -- which dropdown in contents is currently open
             parent = nil,
             id = ''
         }
@@ -56,22 +53,24 @@ function Frame:new(o, id, inPos, padding, alignment)
     o.parent = nil
     o.grid_dimensions = vec(0)
     o.id = id or 'none'
+    o.cell_dimensions = {col_widths = {}, row_heights = {}}
 
     return o
 end
 
-
+-- Convert vector from relative (to frame) to absolute coordinates
 function Frame:absolute(v)
     return v + self.bBox[1] 
 end
 
-
+-- Convert vector to relative to frame coordinates
 function Frame:relative(v)
     return v - self.bBox[1]
 end
 
 
 -- Add an element into frame and position it accordingly
+-- A worse version of addElementToGrid
 function Frame:addElement(element, placement, UI_ref)
     UI_ref.elements[element.id] = element
     element.pos = self:relative(vCopy(self.bBox[1] + vec(self.padding)))
@@ -226,11 +225,20 @@ function Frame:addElement(element, placement, UI_ref)
 end
 
 -- Similar to addElement, but instead uses explicit grid location.
-function Frame:addElementToGrid(element, gridPos, UI_ref)
+function Frame:addElementToGrid(element, gridPos, UI_ref, ...)
     UI_ref.elements[element.id] = element
     element.pos = self:relative(vCopy(self.bBox[1] + vec(self.padding)))
     element.parent = self
     element.grid_location = gridPos
+
+    local args = {...}
+
+    local colspan = args.colspan or 0
+    local rowspan = args.rowspan or 0
+
+    --[[if colspan > 0 then
+        self:addElementToGrid(element, vec(gridPos.x+1, gridPos.y))
+    end]]
 
     if element.subframe ~= nil then
         element.subframe.parent = self
@@ -243,14 +251,41 @@ function Frame:addElementToGrid(element, gridPos, UI_ref)
     self.grid_dimensions.x = math.max(self.grid_dimensions.x, gridPos.x)
     self.grid_dimensions.y = math.max(self.grid_dimensions.y, gridPos.y)
 
-    for _, other in pairs(self.contents) do
+    self.cell_dimensions.col_widths[gridPos.x] = math.max(element.size.x, self.cell_dimensions.col_widths[gridPos.x] or 0)
+    self.cell_dimensions.row_heights[gridPos.y] = math.max(element.size.y, self.cell_dimensions.row_heights[gridPos.y] or 0)
+
+    
+    for w=0, gridPos.x -1 do
+        column_size_x = column_size_x + self.cell_dimensions.col_widths[w] + self.padding
+    end
+
+    for h=0, gridPos.y -1 do
+        column_size_y = column_size_y + self.cell_dimensions.row_heights[h] + self.padding
+    end
+
+    --[[for _, other in pairs(self.contents) do
+        local rows_not_visited = {}
+        local rows_visited = {}
+
         if other.grid_location.x == gridPos.x then
             if other.grid_location.y < gridPos.y then
-                column_size_y = column_size_y + other.size.y + self.padding
+                column_size_y = column_size_y + self.cell_dimensions.row_heights[other.grid_location.y] + self.padding
             elseif other.grid_location.y > gridPos.y then
-                other.pos.y = other.pos.y + element.size.y + self.padding
+                other.pos.y = other.pos.y + self.cell_dimensions.row_heights[element.grid_location.y] + self.padding
             else
                 print("CELL OCCUPIED")
+            end
+            table.insert(rows_visited, other.grid_location.y)
+        else
+            if other.grid_location.y < gridPos.y and not contains(other.grid_location.y, rows_not_visited) then
+                table.insert(rows_not_visited, other.grid_location.y)
+            end
+        end
+
+        for _, empty in pairs(rows_not_visited) do
+            if not contains(empty, rows_visited) then
+                column_size_y = column_size_y + (self.cell_dimensions.row_heights[empty] or 0) + self.padding
+                table.insert(rows_visited, empty)
             end
         end
 
@@ -263,7 +298,7 @@ function Frame:addElementToGrid(element, gridPos, UI_ref)
                 print("CELL OCCUPIED")
             end   
         end
-    end
+    end]]
 
     element.pos = vec(column_size_x, column_size_y)
 
@@ -284,7 +319,7 @@ function Frame:addElementToGrid(element, gridPos, UI_ref)
     local new_dims = self.bBox[2] - self.bBox[1]
     self.dimensions = vec(math.abs(new_dims.x), math.abs(new_dims.y))
 
-    self:updateAbsolutePos(0,0)
+    self:updateAbsolutePos()
 
 
 end
@@ -310,13 +345,15 @@ function Frame:updateAbsolutePos(offset_x, offset_y)
 
     local pos_rel = self.pos
     local parent_x = window_w
-    local parent_y = window_h
+    local parent_y = window_h / 2
 
     if self.parent ~= nil then
         if self.align == 'right' then
-            parent_x = self.parent.bBox[1].x + self.parent.dimensions.x
+            parent_x = self.parent.bBox[2].x + self.parent.padding * 4
+            parent_y = self.parent.bBox[1].y
         elseif self.align == 'left' then
-            parent_x = self.parent.bBox[1].x - self.dimensions.x
+            parent_x = self.parent.bBox[1].x - self.dimensions.x - 5 * 2
+            parent_y = self.parent.bBox[1].y + self.dimensions.y / 2 - 5
         end
         
     else
@@ -335,10 +372,10 @@ function Frame:updateAbsolutePos(offset_x, offset_y)
     local bBox1 = vec(0)
 
     if self.align == 'right' then
-        bBox0 = vec(parent_x - pos_rel.x, (parent_y / 2) - pos_rel.y)
+        bBox0 = vec(parent_x - pos_rel.x, parent_y - pos_rel.y)
         bBox1 = bBox0 + self.dimensions
     elseif self.align == 'left' then
-        bBox0 = vec(parent_x + pos_rel.x, (parent_y / 2) - pos_rel.y)
+        bBox0 = vec(parent_x + pos_rel.x, parent_y - pos_rel.y)
         bBox1 = bBox0 + self.dimensions
     elseif self.align == 'top' then
         bBox0 = vec((window_w / 2) - pos_rel.x, parent_y + pos_rel.y)
@@ -436,11 +473,22 @@ function Frame:draw()
             goto continue
         end
 
+        if element.type == 'label' then
+            local abs_pos = self:absolute(element.pos)
+            CANVAS_UI_STATIC:renderTo(
+                function()
+                    lg.print(element.label, abs_pos.x, abs_pos.y)
+                end
+            )
+            goto continue
+        end
+
         local icon_size = element.icon_set.size_icon
         local atlas_size = element.icon_set.size_atlas
         local dd_tri = lg.newQuad(7 * icon_size, 7 * icon_size, icon_size, icon_size, atlas_size, atlas_size)
 
         local scales
+
         if element.type == 'button_wide' or 'CheckBox' then
             scales = vec(element.size.y) / vec(icon_size)
         else

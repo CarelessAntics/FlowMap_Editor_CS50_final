@@ -88,9 +88,11 @@ function Element:setProperties(frameId, alignment, UI_ref, ... )
 
     local arg = {...}
 
-    for i, property in pairs(arg) do
+    -- Put the processing code to one place to avoid copypaste
+    -- Just creates a different textbox based on input type
+    function processProperty(property)
+            
         local newProperty
-        -- o, inID, inValueType, inSize, inLabel, inFont
         if type(property.value) == 'number' then
             newProperty = TextBox:new(nil, property.id, 'number', tostring(property.value), property.size, property.label, nil)
             --newProperty.text = tostring(property.value)
@@ -104,7 +106,35 @@ function Element:setProperties(frameId, alignment, UI_ref, ... )
             newProperty.text = "Something Went Wrong"
         end
 
-        self.subframe:addElement(newProperty, 'bottom', UI_ref)
+        return newProperty
+    end
+
+    local row_count = 0
+    -- Iterate over input properties and make UI elements for them
+    for i, property in pairs(arg) do
+
+        -- If a given property is multiple tables, or has a property called label header
+        -- Give them a header label and arrange them in one row in the frame
+        if onlyContains('table', property) or property.label_header ~= nil then
+            local header = Label:new(nil, property.id, property.label_header)
+            header:overflow('allow')
+            local col_count = 0
+            self.subframe:addElementToGrid(header, vec(col_count, row_count), UI_ref, {colspan = 1})
+
+            for _, p in pairs(property) do
+                if type(p) == 'table' then
+                    local new_p = processProperty(p)
+                    self.subframe:addElementToGrid(new_p, vec(col_count, row_count + 1), UI_ref)
+                    col_count = col_count + 1
+                end
+            end
+
+            row_count = row_count + 2
+        else
+            local new_p = processProperty(property)
+            self.subframe:addElementToGrid(new_p, vec(0, row_count), UI_ref)
+            row_count = row_count + 1
+        end
     end
     UI_ref.properties[frameId] = self.subframe
 end
@@ -161,6 +191,38 @@ function Element:drawTooltip(mousePos)
 
 end
 
+label_params = {label = "No label"}
+Label = Element:new(label_params)
+
+-- A label object. No functionality, only text
+function Label:new(o, inID, inLabel, inFont)
+    o = o or {}
+    local mt = {__index = self}
+    setmetatable(o, mt)
+
+    o.pos = vec(0)
+    o.id = inID
+    o.label = inLabel or "no label found"
+    o.font = inFont or FONT_GLOBAL
+
+    local label_width = FONT_GLOBAL:getWidth(o.label)
+    local label_height = FONT_GLOBAL:getHeight()
+
+    o.size = vec(label_width, label_height)
+    o.type = 'label'
+
+    return o
+end
+    
+-- To prevent labels resizing grids uselessly, set element.size.x to 0 or back to label width
+function Label:overflow(style)
+    if style == 'none' then
+        self.size.x = self.font:getWidth(self.label)
+    elseif style == 'allow' then
+        self.size.x = 0
+    end
+end
+
 -----------------------------------------
 -- 
 -- Button object
@@ -170,7 +232,7 @@ end
 button_params = {action = nil, parameters = {}, hover = false, pressed = false, icon_set = nil}
 Button = Element:new(button_params)
 
-
+-- Button object has an icon graphic and stored function which activates when button is clicked
 function Button:new(o, inID, inSize, actionFunc, parameters, inSprite, inTooltip, inIconSet)
     o = o or {}
     local mt = {__index = self}
@@ -199,6 +261,7 @@ function Button:new(o, inID, inSize, actionFunc, parameters, inSprite, inTooltip
     return o
 end
 
+-- Reset graphics based on a new icon set
 function Button:setIcons(icon_set, new_sprite)
     
     local x, y, w, h = self.sprite:getViewport()
@@ -344,7 +407,7 @@ function CheckBox:new(o, inID, inSize, inLabel, parameters, defaultState, inSpri
     o.pressed = false
     o.action = actionFunc or function() print("No function specified") end -- function: what happens when button is activated
     o.parameters = parameters or {}
-    o.tooltip = inTooltip or "No tooltip"
+    o.tooltip = inTooltip or ""
     o:setPressed(defaultState)
     o:setTooltipDims(FONT_GLOBAL)
     return o
@@ -501,7 +564,7 @@ function TextBox:draw()
 
     -- Draw highlight
     if self.state then
-        lg.setColor(1, 0, 1, 1)
+        lg.setColor(1, .5, .5, 1)
         lg.rectangle('line', absPos.x, absPos.y + box_height, self.box_size.x, box_height)
     end
 

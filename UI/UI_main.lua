@@ -49,15 +49,27 @@ function UI:init()
     frame_filters:addElement(btn_blur, 'bottom', self)
 
     -- Elements for dd_drawing
+    -- Button for drawing mode and properties
     btn_mode_draw = Button:new(nil, "brush_drawing", button_size, function() mode_DRAW = true mode_RANDOMWALK = false end, {}, vec(6, 0), 'Draw with a brush')
     btn_mode_draw:setProperties('brush_drawing_properties', 'right', self, 
                                 {label = "Brush Radius", id = "p_brush_rad", value = 50, size = vec(4, 1)},
-                                {label = "Brush Hardness", id = "p_brush_hard", value = .5, size = vec(4, 1)},
+                                {label = "Brush Hardness", id = "p_brush_hard", value = 0, size = vec(4, 1)},
                                 {label = "Lazy Radius", id = "p_brush_lazy", value = 100, size = vec(4, 1)},
                                 {label = "Spacing", id = "p_brush_spacing", value = 10, size = vec(4, 1)},
                                 {label = "Alpha", id = "p_brush_alpha_transp", value = 1, size = vec(4, 1)})
 
-    btn_mode_walker = Button:new(nil, "brush_walker_1", button_size, function() mode_DRAW = false mode_RANDOMWALK = true end, {}, vec(4, 4), 'Random walkers')
+    -- Walker button and properties
+    btn_mode_walker = Button:new(nil, "brush_walker_1", button_size, function() mode_DRAW = false mode_RANDOMWALK = true WALKERS_MAIN:createWalkers() end, {}, vec(4, 4), 'Random walkers')
+    btn_mode_walker:setProperties('random_walker_properties', 'right', self, 
+                                {label = "Walker Count", id = "p_walker_count", value = 5, size = vec(4, 1)},
+                                {label_header = 'Walker size range', id = "walker_rad_header",
+                                    {label = "Min", id = "p_walker_rad_min", value = 10, size = vec(4, 1)},
+                                    {label = "Max", id = "p_walker_rad_max", value = 50, size = vec(4, 1)}},
+                                {label = "Turn Range (deg)", id = "p_walker_turn_range", value = 180, size = vec(4, 1)},
+                                {label = "Turn Rate (rad/s)", id = "p_walker_turn_rate", value = 1, size = vec(4, 1)},
+                                {label = "Change Rate", id = "p_walker_change_rate", value = 1, size = vec(4, 1)},
+                                {label = "Spacing", id = "p_walker_spacing", value = 1, size = vec(4, 1)},
+                                {label = "Alpha", id = "p_walker_alpha_transp", value = 1, size = vec(4, 1)})
     --btn_wide_test = ButtonWide:new(nil, "wide_test", button_size, button_size, 'Test Label', nil, {}, vec(0, 2))
     --textbox_test = TextBox:new(nil, "text_test", 'number', nil, vec(4, 1), "label123")
 
@@ -155,7 +167,7 @@ function UI:init()
     -----------------------------------------
 
     --sidebar_right = Frame:new(nil, 'f_side_right', vec(50, 0), FRAME_PADDING, 'right')
-    sidebar_left = Frame:new(nil, 'f_side_left', vec(50, 0), FRAME_PADDING, 'left')
+    sidebar_left = Frame:new(nil, 'f_side_left', vec(50, 300), FRAME_PADDING, 'left')
 
     self.content[1] = sidebar_left
     self.content[1]:addElement(dd_fileops, 'bottom', self)
@@ -231,7 +243,7 @@ function UI:createAlphaButtons(parent_frame, alphaCount)
     for i=1, alphaCount do
         local sprite_coord_x = ((i-1) % 2) * 2
         local sprite_coord_y = math.floor((i-1) / 2)
-        btns[i] =  Button:new(nil, "brush_alpha_"..i, 100, Brush.updateAlpha, {drawing_brush, i}, vec(sprite_coord_x, sprite_coord_y), nil, ALPHA_SET)
+        btns[i] =  Button:new(nil, "brush_alpha_"..i, 100, updateAllAlphas, {i}, vec(sprite_coord_x, sprite_coord_y), nil, ALPHA_SET)
     end
 
     for i, btn in pairs(btns) do

@@ -170,7 +170,7 @@ function toWindowSpace(v)
 end
 
 
--- Actual Object function
+-- Actual vector Object function
 function vec(xIn, yIn)
     if yIn == nil then
         V = {x=xIn, y=xIn}

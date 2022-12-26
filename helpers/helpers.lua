@@ -1,3 +1,6 @@
+PI = 3.14159265359
+TWOPI = 6.28318530718
+
 
 --- Clamps input between min and max
 ---@param min number
@@ -55,11 +58,11 @@ end
 function toNegOneOne(n)
     -- If vectors
     if type(n) == "table" then
-        local outX = toZeroOne(n.x) 
-        local outY = toZeroOne(n.y)
+        local outX = toNegOneOne(n.x) 
+        local outY = toNegOneOne(n.y)
         return vec(outX, outY)
     else
-        return n * 2 + 1
+        return n * 2 - 1
     end
 end
 
@@ -109,14 +112,20 @@ function deepPrint(tbl)
     print(helper(tbl))
 end
 
+-- See if value is in a given table
 function contains(value, table)
     for _, v in pairs(table) do
-        if value == v then
-            return true
-        end
+        if value == v then return true end
     end
-
     return false
+end
+
+-- See if table contains only one type of values
+function onlyContains(target_type, table)
+    for _, v in pairs(table) do
+        if type(v) ~= target_type then return false end
+    end
+    return true
 end
 
 function splitString(str_original, splitter)

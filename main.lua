@@ -66,10 +66,6 @@ mode_ORBIT = false
 BRUSH_ALIGN = {value=true}
 BRUSH_ROTATE = {value=true}
 
--- Random walk params
-WALKERS = {}
-WALKERS_RESPAWN = true
-
 -- Drawing mode params
 -- BRUSH_SIZE = 60
 -- BRUSH_LAZY_RADIUS = 100
@@ -110,7 +106,12 @@ CANVAS_UI_STATIC = lg.newCanvas(SIZE_OUT.x + PADDING_X_TOTAL, SIZE_OUT.y + PADDI
 CANVAS_UI_OVERLAY = lg.newCanvas(SIZE_OUT.x + PADDING_X_TOTAL, SIZE_OUT.y + PADDING_Y_TOTAL)
 CANVAS_SHADER = lg.newCanvas(SIZE_SHADER.x, SIZE_SHADER.y)
 
+-- ALPHA_GLOBAL = li.newImageData("assets/alphas/1.png")
+BRUSHES = {}
+
 -- UI Icons
+-- Icon set objects contain the size of the atlas texture and the icon's 'offset' when clicked, in addition to the sprite batch itself
+-- The offset helps center the icon in the UI. The number is percentage away from center, i.e. 0.07 = 7%
 ICON_ATLAS = lg.newImage("assets/icons/icon_atlas.png")
 ICON_SET = {
     batch = lg.newSpriteBatch(ICON_ATLAS, 50, 'static'),
@@ -118,9 +119,6 @@ ICON_SET = {
     size_atlas = 512,
     size_icon = 64
 }
-
---ICON_BATCH = lg.newSpriteBatch(ICON_ATLAS, 50, 'static')
---ICON_OFFSET = 0.07
 
 ALPHA_ATLAS = lg.newImage("assets/alphas/alpha_atlas.png")
 ALPHA_SET = {
@@ -155,9 +153,6 @@ require "./objects/brush"
 require "./objects/walker"
 require "./functionality/filters"
 require "./functionality/fileops"
-
-drawing_brush = Brush:new(nil, vec(50), 60)
-
 require "./UI/element"
 require "./UI/frame"
 require "./UI/UI_main"
@@ -170,6 +165,7 @@ require "./UI/UI_main"
 
 function love.load()
 
+    -- Init preview shader
     SHADER_PREVIEW = lg.newShader("shader/flow.glsl")
     SHADER_BACKGROUND = lg.newImage("assets/other/harvard.png")
     --SHADER_PREVIEW:send('iResolution', {SIZE_SHADER.x, SIZE_SHADER.y})
@@ -185,28 +181,29 @@ function love.load()
     UI_main:updateFrames()
     UI_main:drawFrames()
 
+    -- Initialize Drawing brush
+    drawing_brush = Brush:new(nil, vec(50), 60)
+    table.insert(BRUSHES, drawing_brush)
+
+    -- Initialize random walkers
+    WALKERS_MAIN = WalkerSystem:new()
+    WALKERS_MAIN:updateWalkerFromProperties(UI_main)
+
     lg.setCanvas(CANVAS_IMAGE)
     lg.clear(.5, .5, 0, 1)
     lg.setCanvas()
 
-    for i = 0, 5 do
-        --WALKERS[i] = Walker:new(nil, vec(math.random(SIZE_OUT.x), math.random(SIZE_OUT.y)), 50)
-        WALKERS[i] = Walker:new(nil, vec(math.random(SIZE_OUT.x - 50 * 2) + 50, math.random(SIZE_OUT.y - 50 * 2) + 50), 30)
-    end
-    
-    --drawing_brush = TestBrush:new(nil, vec(50), BRUSH_SIZE)
 end
 
 function love.update()
 
     --UI_main:updateFrames()
     windowManager()
-    --SHADER_PREVIEW:send('iTime', lt.getTime())
-
 
     -- Return mouse position
     mousePos = mouseHandler()
 
+    -- Hovering function to display tooltips
     if HOVER_TIMER > 1 then
         for _, frame in pairs(UI_main.frames) do
             if isHitRect(mousePos, frame.bBox[1], frame.bBox[2]) and frame.state then
@@ -223,32 +220,14 @@ function love.update()
         HOVER_TIMER = HOVER_TIMER + lt.getDelta()
     end
 
-    --[[
-    -- Update UI_main
-    local function clearImgData(x, y, r, g, b, a)
-        return 0, 0, 0, 0
-    end
-    UI_DATA:mapPixel(clearImgData)
-
-    for _, frame in pairs(UI_main) do
-        frame:generateImg(UI_DATA)
-    end]]
-
     -- Random Walker mode
     if mode_RANDOMWALK then
-        for i = 0, #WALKERS do
-            if WALKERS[i] ~= nil then
-                WALKERS[i]:walk()
-                WALKERS[i]:draw()
-            end
-            if WALKERS[i] ~= nil and WALKERS[i].dead and not WALKERS_RESPAWN then
-                WALKERS[i] = nil
-            end
-        end
+        --WALKERS_MAIN:updateWalkerFromProperties(UI_main)
+        WALKERS_MAIN:update()
 
     -- Drawing mode
     elseif mode_DRAW then
-        drawing_brush:updateFromProperties(UI_main)
+        drawing_brush:updateBrushFromProperties(UI_main)
         drawing_brush:moveToLazy(mousePos)
         if drawing_brush.active and (drawing_brush.pos.x ~= drawing_brush.prev_pos.x and drawing_brush.pos.y ~= drawing_brush.prev_pos.y) then
             drawing_brush:draw('draw')
@@ -260,9 +239,8 @@ end
 
 -- Main draw function
 function love.draw()
-    
 
-    -- Drawing mode
+    -- Draw brush outline if drawing mode is on
     if mode_DRAW then
         drawing_brush:drawOutline(mousePos)
     end
@@ -273,11 +251,14 @@ function love.draw()
     lg.setLineWidth(2)
     DISPLAY_IMAGE:replacePixels(IMGDATA_MAIN)
 
+    -- Send drawn vectormap and current time to shader
     SHADER_PREVIEW:send('vectorMap', DISPLAY_IMAGE)
     SHADER_PREVIEW:send('iTime', lt.getTime())
 
+    -- Draw main drawing canvas
     lg.draw(DISPLAY_IMAGE, PADDING_X.x, PADDING_Y.x, 0, CANVAS_SCALE)
 
+    -- Apply preview shader to canvas
     CANVAS_SHADER:renderTo(
         function()
             lg.clear(0, 0, 0, 0)
@@ -299,18 +280,22 @@ function love.draw()
 
     lg.setLineWidth(2)
 
+    -- Position and draw preview shader
     local canvas_right_side = (PADDING_X.x + SIZE_OUT.x * CANVAS_SCALE)
     local shader_pos_x = canvas_right_side + (window_size_x - canvas_right_side - SIZE_SHADER.x) * .5
     lg.draw(CANVAS_SHADER, shader_pos_x, window_size_y / 2 - SIZE_SHADER.y / 2, 0)
 
+    -- Draw info text
     local scaled_canvas = CANVAS_SCALE * SIZE_OUT
     lg.print("Size: "..SIZE_OUT.x.." x "..SIZE_OUT.y, PADDING_X.x, PADDING_Y.y + scaled_canvas.y)
     lg.print("Preview:", shader_pos_x, window_size_y / 2 - SIZE_SHADER.y / 2 - FONT_GLOBAL:getHeight())
+    lg.print("FPS: " .. lt.getFPS(), PADDING_X.x, PADDING_Y.x - FONT_GLOBAL:getHeight())
 
     local mouseCanvas = toCanvasSpace(mousePos)
     local mouse_pos_string = "Mouse location: " .. string.format('%.0f', mouseCanvas.x) .. ', ' .. string.format('%.0f', mouseCanvas.y)
     lg.print(mouse_pos_string, canvas_right_side - FONT_GLOBAL:getWidth(mouse_pos_string), PADDING_Y.x + scaled_canvas.y)
 
+    -- Draw UI layers
     lg.draw(CANVAS_UI_BACKGROUND)
     lg.draw(CANVAS_UI_DYNAMIC)
     lg.draw(ICON_SET.batch)
@@ -329,13 +314,7 @@ function love.draw()
     lg.print(UI_main.content[1].bBox[1].x .. ", " .. UI_main.content[1].bBox[1].y .. ' | ' .. UI_main.content[1].bBox[2].x .. ", " .. UI_main.content[1].bBox[2].y, PADDING_X.x + 30, PADDING_Y.y + 30 + 90)
     ]]
 
-    --[[
-    for i = 0, WIDTH do
-        local col = lerp(0, 1, i / WIDTH)
-        lg.setColor(col, col, col)
-        lg.circle('fill', i, PADDING_Y.y + 550, 10, 32)
-    end]]
-
+    -- Clear some UI layers
     lg.setCanvas(CANVAS_UI_OVERLAY)
     lg.clear(0,0,0,0)
     lg.setCanvas(CANVAS_UI_DYNAMIC)
@@ -352,7 +331,6 @@ end
 
 
 function love.mousepressed(x, y, button)
-
     -- Any click clears textbox selection. Will be reselected in this function if click hits
     selectTextBox(nil)
 
@@ -374,9 +352,6 @@ function love.mousepressed(x, y, button)
                 drawing_brush.erasing = true
             end
         end
-            
-    elseif mode_RANDOMWALK then
-        WALKERS[#WALKERS+1] = Walker:new(nil, vec(x, y), 50)
     end
 end
 
@@ -403,15 +378,11 @@ end
 
 function love.textinput(t)
     if TEXTBOX_SELECTED ~= nil then
+        -- validate text input to prevent errors
         if TEXTBOX_SELECTED:validate(t) then
             TEXTBOX_SELECTED.text = TEXTBOX_SELECTED.text .. t
             TEXTBOX_SELECTED:draw()
         end
-
-        --[[
-        if TEXTBOX_SELECTED.parent.id == 'f_brush_properties' then
-            drawing_brush:updateFromProperties()
-        end]]
     end
 end
 
@@ -420,10 +391,6 @@ end
 -- CUSTOM FUNCTIONS
 -- 
 -------------------------------------------
-
-function clearWalkers()
-    WALKERS = {}
-end
 
 --- Return mouse position, or 0 if nil
 function mouseHandler()
