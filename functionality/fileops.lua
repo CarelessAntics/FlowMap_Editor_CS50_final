@@ -6,13 +6,6 @@ function saveScreen(name_field)
     local outfile = dirs[#dirs]
     local outpath = OUTDIR .. string.gsub(savepath, outfile, "")
 
-    print(outfile)
-    print(outpath)
-
-    --[[local properties_id = 'fileops_save_properties'
-    local properties = UI_main.properties[properties_id].contents
-    local outfile = properties['p_save_filename']:getValueText() .. '.png']]
-
     if outfile == '.png' or outfile == ' .png' then
         outfile = OUTFILE
     end
@@ -27,6 +20,7 @@ function saveScreen(name_field)
     end
 end
 
+
 function getPath(filepath)
     local directories = {}
     for str in string.gmatch(filepath, '([^/]+)') do
@@ -35,10 +29,10 @@ function getPath(filepath)
     return directories
 end
 
+
 --- load image
----@param filename string
 function loadImage(filename)
-    -- TODO: implement image size change
+
     local new_image = li.newImageData(filename)
     local new_w, new_h = new_image:getDimensions()
 
@@ -47,12 +41,15 @@ function loadImage(filename)
     DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
 end
 
+
+-- Reset the canvas to new dimensions
 function newImage(size_button_x, size_button_y)
     local size_x = size_button_x:getValueNumber()
     local size_y = size_button_y:getValueNumber() ~= 0 and size_button_y:getValueNumber() or size_x
 
     screenInit(size_x, size_y)
 end
+
 
 function resizeImage(size_button_x, size_button_y)
 

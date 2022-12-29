@@ -29,14 +29,18 @@ function vScalarDiv(a, scalar)
 end
 
 -----------------------------------------
+-- 
+-- Other operations and utilities
+-- 
+-----------------------------------------
 
 -- Rotate 2D vector
 function vRot(v, a)
     -- Convert angle to radians
     a = a * math.pi * 2
     -- 2D rotation matrix from google
-    x = v.x * math.cos(a) - v.y * math.sin(a)
-    y = v.x * math.sin(a) + v.y * math.cos(a)
+    local x = v.x * math.cos(a) - v.y * math.sin(a)
+    local y = v.x * math.sin(a) + v.y * math.cos(a)
 
     return vec(x, y)
 end
@@ -80,12 +84,10 @@ function normalize(vector)
     end
 end
 
-
 -- Copies a vector
 function vCopy(v)
     return vec(v.x, v.y)
 end
-
 
 -- Returns a wrapped around vector
 function wrapped(inVec, in_width, in_height, in_size, axis)
@@ -138,7 +140,7 @@ function isOutOfBounds(inVec, in_width, in_height, in_size)
     return vec(oobX, oobY)
 end
 
-
+-- Is input vector within a rectangle
 function isHitRect(inVec, bBox0, bBox1)
     if (inVec.x > bBox0.x and inVec.x < bBox1.x) and (inVec.y > bBox0.y and inVec.y < bBox1.y) then
         return true
@@ -147,7 +149,7 @@ function isHitRect(inVec, bBox0, bBox1)
     end
 end
 
-
+-- Is input vector within a circle
 function isHitCirc(inVec, pos, r)
     local distance = vLength(inVec - pos)
     if distance < r then
@@ -172,6 +174,7 @@ end
 
 -- Actual vector Object function
 function vec(xIn, yIn)
+    local V
     if yIn == nil then
         V = {x=xIn, y=xIn}
     else

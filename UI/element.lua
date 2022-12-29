@@ -1,6 +1,9 @@
+-----------------------------------------
+-- 
+-- Base UI element object
+--
+-----------------------------------------
 
-
--- Base UI element
 Element = {  pos = vec(0), -- Position will be top-left corner
             size = vec(1),
             id = nil,
@@ -80,6 +83,8 @@ end
 -- Create properties-frame for Element
 -- Takes in a variable amount of tables with the following template:
 -- {label = text, id = text, value = any, size = vector}
+-- For grouped properties:
+-- {label_header = text, id = any, {}, {}, {}, ...}
 function Element:setProperties(frameId, alignment, UI_ref, ... )
     -- Create a new subframe and initialize its state to false
     self.subframe = Frame:new(nil, frameId, vec(0), 10, alignment)
@@ -191,6 +196,12 @@ function Element:drawTooltip(mousePos)
 
 end
 
+-----------------------------------------
+-- 
+-- Label object
+--
+-----------------------------------------
+
 label_params = {label = "No label"}
 Label = Element:new(label_params)
 
@@ -289,6 +300,12 @@ function Button:setPressed(state)
     end
 end
 
+-----------------------------------------
+-- 
+-- Wide button (custom label) object
+--
+-----------------------------------------
+
 buttonWide_params = {width = 0, label = ''}
 ButtonWide = Button:new(buttonWide_params)
 
@@ -378,6 +395,12 @@ function Dropdown:setContent(inContent)
     self.subframe.parent = self.parent
     self.subframe.state = false
 end
+
+-----------------------------------------
+-- 
+-- Checkbox object
+--
+-----------------------------------------
 
 checkbox_params = {label = ""}
 CheckBox = Button:new(checkbox_params)
@@ -512,21 +535,17 @@ end
 function TextBox:validate(t)
 
     local decimal = true
-    local operator = true
+    local digit = true
     local letters = true
     local length = true
 
     -- Check for decimal points in whole text. Prevent adding more if one exists
     -- At the same time, ensure input is only digits
     if self.valuetype == 'number' then
-        if string.match(self.text, "[.]+") then
+        if string.match(self.text, "[%.]+") then
             decimal = string.match(t, "%d+") ~= nil
         else
-            decimal = string.match(t, "%d?[.]?") ~= nil
-        end
-
-        if string.match(t, "[%+%*%^%-%/]+") ~= nil then
-            operator = false
+            decimal = string.match(t, "[%d%.]+") ~= nil
         end
 
     -- Check that input is letters only
@@ -541,7 +560,7 @@ function TextBox:validate(t)
         length = false
     end
 
-    return decimal and letters and length and operator
+    return decimal and letters and length and digit
 end
 
 
@@ -578,6 +597,7 @@ function TextBox:draw()
 end
 
 
+-- Maybe one day
 Slider = Element:new()
 
 function Slider:new(o, inPos, inID, inSize, actionFunc, inIcon)

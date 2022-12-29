@@ -1,7 +1,9 @@
-# Flow Map Editor - CS50 2022 Final Project
+# Vector Map Painter - CS50x 2022 Final Project
 ## CS50
 ----
 Final project for the CS50x 2022 Intro to Computer Science course
+
+#### Video Demo: https://youtu.be/JOcMBccPrGU
 
 ## What is this
 
@@ -70,11 +72,3 @@ Images can be resized to any 4-digit size, though powers of 2 are recommended. L
 
 ### Custom UI system
 A UI system created purely for this tool. All UI elements (in `UI/elements.lua`) reside in frame objects (in `UI/frame.lua`), which can be nested inside each other and in other elements as dropdowns. Elements include icon-based buttons, buttons with custom text, text input boxes, dropdown menus, checkboxes, and labels. UI elements also support tooltips. Right clicking an element opens a properties window in case one exists
-
-## Intro Video
-
-TODO
-
-## Images
-----
-TODO

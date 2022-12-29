@@ -41,7 +41,7 @@ function UI:init()
 
     btn_blur = Button:new(nil, "filter_blur", button_size, filterBoxBlur, {self}, vec(4, 0), 'Box blur')
     btn_blur:setProperties('f_blur_properties', 'right', self,
-                            {label = "Blur Radius", id = "p_blur_rad", value = 10, size = vec(4, 1)},
+                            {label = "Blur Radius", id = "p_blur_rad", value = 5, size = vec(4, 1)},
                             {label = "Blur Samples", id = "p_blur_samples", value = 4, size = vec(4, 1)})
 
     -- Add Elements to frame_filters

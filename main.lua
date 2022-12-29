@@ -1,6 +1,3 @@
-if arg[#arg] == "vsc_debug" then require("lldebugger").start() end
-io.stdout:setvbuf('no')
-
 lfs = love.filesystem
 lf = love.font
 lg = love.graphics
@@ -12,19 +9,11 @@ lt = love.timer
 require "./conf"
 require "./helpers/vector"
 require "./helpers/helpers"
--- require "./functionality/resize"
 
-
--- TODO: Brush 
--- TODO: UI_main
---      Tooltips
---      Properties
---      preview window
+-- Nice to have:
 -- TODO: Orbiters
--- TODO: implement image size change (also for loading images)
 -- TODO: Layers
--- TODO: Image processing, blurs, filters etc
--- TODO: Switch from drawing circles to canvases to writing into imagedata
+-- TODO: More image processing, blurs, filters etc
 
 function initImage()
     DISPLAY_IMAGE = lg.newImage(IMGDATA_MAIN)
@@ -65,11 +54,6 @@ mode_ORBIT = false
 -- Brush globals
 BRUSH_ALIGN = {value=true}
 BRUSH_ROTATE = {value=true}
-
--- Drawing mode params
--- BRUSH_SIZE = 60
--- BRUSH_LAZY_RADIUS = 100
--- CURRENTLY_DRAWING = false
 
 -- Canvas and window params
 --WIDTH = 1024
@@ -127,7 +111,7 @@ ALPHA_SET = {
     size_atlas = 512,
     size_icon = 128
 }
-ALPHA_BATCH = lg.newSpriteBatch(ALPHA_ATLAS, 50, 'static')
+--ALPHA_BATCH = lg.newSpriteBatch(ALPHA_ATLAS, 50, 'static')
 
 -- TextBox params
 TEXTBOX_SELECTED = nil
@@ -194,6 +178,7 @@ function love.load()
     lg.setCanvas()
 
 end
+
 
 function love.update()
 
@@ -296,8 +281,8 @@ function love.draw()
     lg.print(mouse_pos_string, canvas_right_side - FONT_GLOBAL:getWidth(mouse_pos_string), PADDING_Y.x + scaled_canvas.y)
 
     -- Draw UI layers
-    lg.draw(CANVAS_UI_BACKGROUND)
     lg.draw(CANVAS_UI_DYNAMIC)
+    lg.draw(CANVAS_UI_BACKGROUND)
     lg.draw(ICON_SET.batch)
     lg.draw(ALPHA_SET.batch)
     lg.draw(CANVAS_UI_STATIC)
@@ -404,6 +389,7 @@ function mouseHandler()
 
     return vec(mX, mY)
 end
+
 
 --- Manages scaling and positioning of canvases when window size changes
 function windowManager()

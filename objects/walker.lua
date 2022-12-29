@@ -49,6 +49,7 @@ WalkerSystem = {count = 0,
                 change_rate = .1 -- The rate of change for walker radius and turning
             }
 
+            
 function WalkerSystem:new(o)
     o = o or {}
     local mt = {__index = self}
@@ -63,7 +64,6 @@ function WalkerSystem:new(o)
 
     return o
 end
-
 
 
 function WalkerSystem:createWalkers()
@@ -81,6 +81,7 @@ function WalkerSystem:createWalkers()
     end
 end
 
+
 -- Get values from properties
 function WalkerSystem:updateWalkerFromProperties(UI_ref)
     local properties_id = 'random_walker_properties'
@@ -92,6 +93,9 @@ function WalkerSystem:updateWalkerFromProperties(UI_ref)
     --  size range
     --  turn range
     --  turn rate
+    --  change rate
+    --  spacing
+    --  alpha
 
     local range_count = {min = 1, max = 50}
     local range_size = {min = 1, max = 100}
@@ -113,8 +117,8 @@ function WalkerSystem:updateWalkerFromProperties(UI_ref)
     self.alpha_transp = clamp(range_spacing.min, range_spacing.max, properties['p_walker_alpha_transp']:getValueNumber())
 end
 
-function WalkerSystem:update()
 
+function WalkerSystem:update()
     for _, walker in pairs(self.walkers) do
         if walker ~= nil then
             walker:walk()
@@ -175,39 +179,8 @@ function Walker:walk()
     self.seed = self.seed + self.parent.change_rate * .01
 end
 
+
 function Walker:updateWalkerAlpha()
     self.alpha_original = li.newImageData(self.parent.alpha_path)
     self.alpha = li.newImageData(self.parent.alpha_path)
 end
-
-
---[[
-CS50 final project video script
-
-INTRODUCTION
--   Who I am, what I do, why I took the course
-
--   Why make this
-    -   Short description of shaders, flow shader in particular
-        - Shaders are pieces of code that manipulate pixels on screen, or vertices in a 3D mesh
-        - A flow shader takes in a vector map, and pushes pixels around in a texture to create the illusion of continuous flow
-        - A vector map is a regular image, with 2D vectors encoded to red and green channels
-
-    -   When making a vector map from noise, you get unnatural looking results
-        - [Demonstration file perlin]
-        - The tool allows you to paint flowmaps by hand, or generatively using random walkers, and preview the results in real time
-
--   Show off features
-    -   Drawing
-    -   Random walkers
-    -   filters
-    -   Fundamental parts of the tool were made from ground up, such as
-        - Vector Math library, which allows to use linear algebra that is used in pretty much every aspect of this project 
-        - UI system as a whole
-            - Frame objects, and the elements it contains, such as 
-                -buttons
-                -text input fields
-                -checkboxes
-                -dropdown menus
-                -property menus
-end]]--
